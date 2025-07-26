@@ -1,9 +1,36 @@
-ResultsDashboard = Utilities.createClass(
-    function(options, testData)
+/*
+ * Copyright (C) 2018-2020 Apple Inc. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY APPLE INC. AND ITS CONTRIBUTORS ``AS IS''
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL APPLE INC. OR ITS CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE.
+ */
+ ResultsDashboard = Utilities.createClass(
+    function(version, options, testData)
     {
         this._iterationsSamplers = [];
         this._options = options;
         this._results = null;
+        this._version = version;
+        this._targetFrameRate = options["frame-rate"];
+        this._systemFrameRate = options["system-frame-rate"];
         if (testData) {
             this._iterationsSamplers = testData;
             this._processData();
@@ -57,6 +84,8 @@ ResultsDashboard = Utilities.createClass(
             iterationsScores.push(result[Strings.json.score]);
         }, this);
 
+        this._results[Strings.json.version] = this._version;
+        this._results[Strings.json.fps] = this._targetFrameRate;
         this._results[Strings.json.score] = Statistics.sampleMean(iterationsScores.length, iterationsScores.reduce(function(a, b) { return a + b; }));
         this._results[Strings.json.scoreLowerBound] = this._results[Strings.json.results.iterations][0][Strings.json.scoreLowerBound];
         this._results[Strings.json.scoreUpperBound] = this._results[Strings.json.results.iterations][0][Strings.json.scoreUpperBound];
@@ -67,10 +96,7 @@ ResultsDashboard = Utilities.createClass(
         var result = {};
         data[Strings.json.result] = result;
         var samples = data[Strings.json.samples];
-
-        var desiredFrameLength = 1000/60;
-        if (this._options["controller"] == "ramp30")
-            desiredFrameLength = 1000/30;
+        const desiredFrameLength = 1000 / this._targetFrameRate;
 
         function findRegression(series, profile) {
             var minIndex = Math.round(.025 * series.length);
@@ -85,32 +111,34 @@ ResultsDashboard = Utilities.createClass(
                 maxComplexity = series.getFieldInDatum(maxIndex, Strings.json.complexity);
             }
 
+            var frameTypeIndex = series.fieldMap[Strings.json.frameType];
             var complexityIndex = series.fieldMap[Strings.json.complexity];
             var frameLengthIndex = series.fieldMap[Strings.json.frameLength];
             var regressionOptions = { desiredFrameLength: desiredFrameLength };
             if (profile)
                 regressionOptions.preferredProfile = profile;
+
+            var regressionSamples = series.slice(minIndex, maxIndex + 1);
+            var animationSamples = regressionSamples.data.filter((sample) => sample[frameTypeIndex] == Strings.json.animationFrameType);
+            var regressionData = animationSamples.map((sample) => [ sample[complexityIndex], sample[frameLengthIndex] ]);
+
+            var regression = new Regression(regressionData, minIndex, maxIndex, regressionOptions);
             return {
                 minComplexity: minComplexity,
                 maxComplexity: maxComplexity,
-                samples: series.slice(minIndex, maxIndex + 1),
-                regression: new Regression(
-                    series.data,
-                    function (data, i) { return data[i][complexityIndex]; },
-                    function (data, i) { return data[i][frameLengthIndex]; },
-                    minIndex, maxIndex, regressionOptions)
+                samples: regressionSamples,
+                regression: regression,
             };
         }
 
-        var complexitySamples;
         // Convert these samples into SampleData objects if needed
-        [Strings.json.complexity, Strings.json.complexityAverage, Strings.json.controller].forEach(function(seriesName) {
+        [Strings.json.complexity, Strings.json.controller].forEach(function(seriesName) {
             var series = samples[seriesName];
             if (series && !(series instanceof SampleData))
                 samples[seriesName] = new SampleData(series.fieldMap, series.data);
         });
 
-        var isRampController = ["ramp", "ramp30"].indexOf(this._options["controller"]) != -1;
+        var isRampController = this._options["controller"] == "ramp";
         var predominantProfile = "";
         if (isRampController) {
             var profiles = {};
@@ -130,27 +158,21 @@ ResultsDashboard = Utilities.createClass(
             }
         }
 
-        [Strings.json.complexity, Strings.json.complexityAverage].forEach(function(seriesName) {
-            if (!(seriesName in samples))
-                return;
+        var regressionResult = findRegression(samples[Strings.json.complexity], predominantProfile);
+        var calculation = regressionResult.regression;
+        result[Strings.json.complexity] = {};
+        result[Strings.json.complexity][Strings.json.regressions.segment1] = [
+            [regressionResult.minComplexity, calculation.s1 + calculation.t1 * regressionResult.minComplexity],
+            [calculation.complexity, calculation.s1 + calculation.t1 * calculation.complexity]
+        ];
+        result[Strings.json.complexity][Strings.json.regressions.segment2] = [
+            [calculation.complexity, calculation.s2 + calculation.t2 * calculation.complexity],
+            [regressionResult.maxComplexity, calculation.s2 + calculation.t2 * regressionResult.maxComplexity]
+        ];
+        result[Strings.json.complexity][Strings.json.complexity] = calculation.complexity;
+        result[Strings.json.complexity][Strings.json.measurements.stdev] = Math.sqrt(calculation.error / samples[Strings.json.complexity].length);
 
-            var regression = {};
-            result[seriesName] = regression;
-            var regressionResult = findRegression(samples[seriesName], predominantProfile);
-            if (seriesName == Strings.json.complexity)
-                complexitySamples = regressionResult.samples;
-            var calculation = regressionResult.regression;
-            regression[Strings.json.regressions.segment1] = [
-                [regressionResult.minComplexity, calculation.s1 + calculation.t1 * regressionResult.minComplexity],
-                [calculation.complexity, calculation.s1 + calculation.t1 * calculation.complexity]
-            ];
-            regression[Strings.json.regressions.segment2] = [
-                [calculation.complexity, calculation.s2 + calculation.t2 * calculation.complexity],
-                [regressionResult.maxComplexity, calculation.s2 + calculation.t2 * regressionResult.maxComplexity]
-            ];
-            regression[Strings.json.complexity] = calculation.complexity;
-            regression[Strings.json.measurements.stdev] = Math.sqrt(calculation.error / samples[seriesName].length);
-        });
+        result[Strings.json.fps] = data.targetFPS;
 
         if (isRampController) {
             var timeComplexity = new Experiment;
@@ -166,15 +188,24 @@ ResultsDashboard = Utilities.createClass(
             experimentResult[Strings.json.measurements.percent] = timeComplexity.percentage();
 
             const bootstrapIterations = 2500;
-            var bootstrapResult = Regression.bootstrap(complexitySamples.data, bootstrapIterations, function(resampleData) {
-                var complexityIndex = complexitySamples.fieldMap[Strings.json.complexity];
+            var bootstrapResult = Regression.bootstrap(regressionResult.samples.data, bootstrapIterations, function(resampleData) {
+                var complexityIndex = regressionResult.samples.fieldMap[Strings.json.complexity];
                 resampleData.sort(function(a, b) {
                     return a[complexityIndex] - b[complexityIndex];
                 });
 
-                var resample = new SampleData(complexitySamples.fieldMap, resampleData);
-                var regressionResult = findRegression(resample, predominantProfile);
-                return regressionResult.regression.complexity;
+                var resample = new SampleData(regressionResult.samples.fieldMap, resampleData);
+                var bootstrapRegressionResult = findRegression(resample, predominantProfile);
+                if (bootstrapRegressionResult.regression.t2 < 0) {
+                  // A positive slope means the frame rate decreased with increased complexity (which is the expected
+                  // benavior). OTOH, a negative slope means the framerate increased as the complexity increased. This
+                  // likely means the max complexity needs to be increased. None-the-less, if the slope is negative use
+                  // the max-complexity as the computed complexity (intersection of the two lines) does not tell us
+                  // the point when the browser could not handle the complexity, rather it tells us when the framerate
+                  // increased.
+                  return bootstrapRegressionResult.maxComplexity;
+                }
+                return bootstrapRegressionResult.regression.complexity;
             }, .8);
 
             result[Strings.json.complexity][Strings.json.bootstrap] = bootstrapResult;
@@ -237,6 +268,11 @@ ResultsDashboard = Utilities.createClass(
     get options()
     {
         return this._options;
+    },
+
+    get version()
+    {
+        return this._version;
     },
 
     _getResultsProperty: function(property)
@@ -377,7 +413,7 @@ window.benchmarkRunnerClient = {
 
     willStartFirstIteration: function()
     {
-        this.results = new ResultsDashboard(this.options);
+        this.results = new ResultsDashboard(Strings.version, this.options);
     },
 
     didRunSuites: function(suitesSamplers)
@@ -393,11 +429,12 @@ window.benchmarkRunnerClient = {
     didFinishLastIteration: function()
     {
         benchmarkController.showResults();
+        if (window.opener && !window.opener.closed)
+            window.opener.postMessage("testCompleted", "*");
     }
 };
 
-window.sectionsManager =
-{
+window.sectionsManager = {
     showSection: function(sectionIdentifier, pushState)
     {
         var sections = document.querySelectorAll("main > section");
@@ -419,9 +456,15 @@ window.sectionsManager =
             history.pushState({section: sectionIdentifier}, document.title);
     },
 
-    setSectionScore: function(sectionIdentifier, score, confidence)
+    setSectionVersion: function(sectionIdentifier, version)
     {
-        document.querySelector("#" + sectionIdentifier + " .score").textContent = score;
+        document.querySelector("#" + sectionIdentifier + " .version").textContent = version;
+    },
+
+    setSectionScore: function(sectionIdentifier, score, confidence, fps)
+    {
+        if (fps && score)
+            document.querySelector("#" + sectionIdentifier + " .score").textContent = `${score} @ ${fps}fps`;
         if (confidence)
             document.querySelector("#" + sectionIdentifier + " .confidence").textContent = confidence;
     },
@@ -434,12 +477,66 @@ window.sectionsManager =
 };
 
 window.benchmarkController = {
-    initialize: function()
-    {
-        benchmarkController.addOrientationListenerIfNecessary();
+    benchmarkDefaultParameters: {
+        "test-interval": 30,
+        "display": "minimal",
+        "tiles": "big",
+        "controller": "ramp",
+        "kalman-process-error": 1,
+        "kalman-measurement-error": 4,
+        "time-measurement": "performance",
+        "warmup-length": 2000,
+        "warmup-frame-count": 30,
+        "first-frame-minimum-length": 0,
+        "system-frame-rate": 60,
+        "frame-rate": 60,
     },
 
-    determineCanvasSize: function() {
+    initialize: async function()
+    {
+        document.title = Strings.text.title.replace("%s", Strings.version);
+        document.querySelectorAll(".version").forEach(function(e) {
+            e.textContent = Strings.version;
+        });
+        benchmarkController.addOrientationListenerIfNecessary();
+
+        this._startButton = document.getElementById("start-button");
+        this._startButton.disabled = true;
+        this._startButton.textContent = Strings.text.determininingFrameRate;
+
+        let targetFrameRate;
+        try {
+            targetFrameRate = await benchmarkController.determineFrameRate();
+        } catch (e) {
+        }
+        this.frameRateDeterminationComplete(targetFrameRate);
+    },
+    
+    frameRateDeterminationComplete: function(frameRate)
+    {
+        const frameRateLabel = document.getElementById("frame-rate-label");
+
+        let labelContent = "";
+        if (!frameRate) {
+            labelContent = Strings.text.frameRateDetectionFailure;
+            frameRate = 60;
+        } else if (frameRate != 60)
+            labelContent = Strings.text.non60FrameRate.replace("%s", frameRate);
+        else 
+            labelContent = Strings.text.usingFrameRate.replace("%s", frameRate);
+
+        frameRateLabel.innerHTML = labelContent;
+
+        this.benchmarkDefaultParameters["system-frame-rate"] = frameRate;
+        this.benchmarkDefaultParameters["frame-rate"] = frameRate;
+
+        this._startButton.textContent = Strings.text.runBenchmark;
+        this._startButton.disabled = false;
+        this._startButton.click();
+    },
+
+    determineCanvasSize: function()
+    {
         var match = window.matchMedia("(max-device-width: 760px)");
         if (match.matches) {
             document.body.classList.add("small");
@@ -461,7 +558,59 @@ window.benchmarkController = {
         document.body.classList.add("large");
     },
 
-    addOrientationListenerIfNecessary: function() {
+    determineFrameRate: function(detectionProgressElement)
+    {
+        return new Promise((resolve, reject) => {
+            let firstTimestamp;
+            let count = 0;
+
+            const averageFrameRate = function(timestamp)
+            {
+                return 1000. / ((timestamp - firstTimestamp) / count);
+            }
+
+            const finish = function(average)
+            {
+                const commonFrameRates = [15, 30, 45, 60, 90, 120, 144];
+                const distanceFromFrameRates = commonFrameRates.map(rate => {
+                    return Math.abs(Math.round(rate - average));
+                });
+
+                let shortestDistance = Number.MAX_VALUE;
+                let targetFrameRate = undefined;
+                for (let i = 0; i < commonFrameRates.length; i++) {
+                    if (distanceFromFrameRates[i] < shortestDistance) {
+                        targetFrameRate = commonFrameRates[i];
+                        shortestDistance = distanceFromFrameRates[i];
+                    }
+                }
+                if (!targetFrameRate)
+                    reject("Failed to map frame rate to a common frame rate");
+
+                resolve(targetFrameRate);
+            }
+
+            const tick = function(timestamp)
+            {
+                if (!firstTimestamp)
+                    firstTimestamp = timestamp;
+                else if (detectionProgressElement)
+                    detectionProgressElement.textContent = Math.round(averageFrameRate(timestamp));
+
+                count++;
+
+                if (count < 300)
+                    requestAnimationFrame(tick);
+                else
+                    finish(averageFrameRate(timestamp));
+            }
+
+            requestAnimationFrame(tick);
+        })
+    },
+
+    addOrientationListenerIfNecessary: function()
+    {
         if (!("orientation" in window))
             return;
 
@@ -474,21 +623,20 @@ window.benchmarkController = {
     {
         benchmarkController.isInLandscapeOrientation = match.matches;
         if (match.matches)
-            document.querySelector(".start-benchmark p").classList.add("hidden");
+            document.querySelector(".portrait-orientation-check").classList.add("hidden");
         else
-            document.querySelector(".start-benchmark p").classList.remove("hidden");
+            document.querySelector(".portrait-orientation-check").classList.remove("hidden");
+
         benchmarkController.updateStartButtonState();
     },
 
     updateStartButtonState: function()
     {
-        document.getElementById("run-benchmark").disabled = !this.isInLandscapeOrientation;
+        document.getElementById("start-button").disabled = !this.isInLandscapeOrientation;
     },
 
     _startBenchmark: function(suites, options, frameContainerID)
     {
-        benchmarkController.determineCanvasSize();
-
         var configuration = document.body.className.match(/small|medium|large/);
         if (configuration)
             options[Strings.json.configuration] = configuration[0];
@@ -501,17 +649,11 @@ window.benchmarkController = {
         sectionsManager.showSection("test-container");
     },
 
-    startBenchmark: function()
+    startBenchmark: async function()
     {
-        var options = {
-            "test-interval": 30,
-            "display": "minimal",
-            "tiles": "big",
-            "controller": "ramp",
-            "kalman-process-error": 1,
-            "kalman-measurement-error": 4,
-            "time-measurement": "performance"
-        };
+        benchmarkController.determineCanvasSize();
+
+        let options = this.benchmarkDefaultParameters;
         this._startBenchmark(Suites, options, "test-container");
     },
 
@@ -522,10 +664,12 @@ window.benchmarkController = {
             this.addedKeyEvent = true;
         }
 
-        var dashboard = benchmarkRunnerClient.results;
-        var score = dashboard.score;
-        var confidence = "±" + (Statistics.largestDeviationPercentage(dashboard.scoreLowerBound, score, dashboard.scoreUpperBound) * 100).toFixed(2) + "%";
-        sectionsManager.setSectionScore("results", score.toFixed(2), confidence);
+        const dashboard = benchmarkRunnerClient.results;
+        const score = dashboard.score;
+        const confidence = "±" + (Statistics.largestDeviationPercentage(dashboard.scoreLowerBound, score, dashboard.scoreUpperBound) * 100).toFixed(2) + "%";
+        const fps = dashboard._targetFrameRate;
+        sectionsManager.setSectionVersion("results", dashboard.version);
+        sectionsManager.setSectionScore("results", score.toFixed(2), confidence, fps);
         sectionsManager.populateTable("results-header", Headers.testName, dashboard);
         sectionsManager.populateTable("results-score", Headers.score, dashboard);
         sectionsManager.populateTable("results-data", Headers.details, dashboard);
@@ -573,6 +717,7 @@ window.benchmarkController = {
         data.textContent = "Please wait...";
         setTimeout(function() {
             var output = {
+                version: benchmarkRunnerClient.results.version,
                 options: benchmarkRunnerClient.results.options,
                 data: benchmarkRunnerClient.results.data
             };
@@ -624,3 +769,4 @@ window.benchmarkController = {
 };
 
 window.addEventListener("load", function() { benchmarkController.initialize(); });
+

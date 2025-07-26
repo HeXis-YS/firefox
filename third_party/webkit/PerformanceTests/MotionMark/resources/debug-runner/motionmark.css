@@ -1,3 +1,27 @@
+/*
+ * Copyright (C) 2015-2018 Apple Inc. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY APPLE INC. AND ITS CONTRIBUTORS ``AS IS''
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL APPLE INC. OR ITS CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE.
+ */
 body {
     font-size: initial;
 }
@@ -21,10 +45,14 @@ section .body {
     transform: none;
 }
 
-h1 {
-    font-size: 3em;
-    margin: 1.5em 0 .5em;
+header {
+    margin: 3em 0 1em;
     text-align: center;
+}
+
+header h1, header h2 {
+    font-size: 3em;
+    margin: 0;
 }
 
 button {
@@ -60,8 +88,8 @@ button:disabled {
 
 @media screen and (max-device-width: 414px),
     screen and (max-device-height: 414px) and (orientation: landscape) {
-    h1 {
-        font-size: 2.5em;
+    header h1 {
+        font-size: 2em;
     }
 
     section {
@@ -259,9 +287,8 @@ label.tree-label {
     color: rgb(235, 235, 235);
 }
 
-#drop-target:hover {
+#drop-target.drag-over {
     background-color: rgba(255, 255, 255, .1);
-    cursor: pointer;
 }
 
 #options ul {
@@ -301,6 +328,10 @@ label.tree-label {
 
 #intro .start-benchmark p {
     color: hsl(11, 100%, 66%);
+}
+
+#frame-rate-detection span {
+    color: red;
 }
 
 @media screen and (max-device-width: 414px),
@@ -539,10 +570,6 @@ body.showing-test-container.tiles-classic {
     flex-direction: row;
 }
 
-#test-graph {
-    flex: 1 0 calc(100% - 40px);
-}
-
 #test-graph h1 {
     margin-bottom: 0;
 }
@@ -595,7 +622,29 @@ body.showing-test-container.tiles-classic {
 /*                           Graph Section                                    */
 /* -------------------------------------------------------------------------- */
 
+body.showing-test-graph {
+    height: 100vh;
+}
+
+body.showing-test-graph main, #test-graph {
+    height: 100%;
+}
+
+body.showing-test-graph header, body.showing-test-graph nav {
+    flex-basis: auto;
+}
+
+#test-graph .body {
+    display: flex;
+    flex-direction: column;
+    margin-trim: block-start;
+    margin: 1em;
+    height: calc(100% - 2em);
+}
+
 #test-graph-data {
+    flex-grow: 1;
+    min-height: 0;
     z-index: 1;
     font: 10px sans-serif;
     color: rgb(235, 235, 235);
@@ -603,7 +652,7 @@ body.showing-test-container.tiles-classic {
 
 #test-graph-data > svg {
     fill: none;
-    overflow: visible;
+/*    overflow: hidden;*/
 }
 
 .axis path,
@@ -680,6 +729,10 @@ body.showing-test-container.tiles-classic {
     stroke-width: 2px;
 }
 
+#regressions line.association {
+    stroke-width: 1px;
+}
+
 #regressions circle {
     fill: rgba(200, 200, 200, .8);
 }
@@ -731,12 +784,16 @@ body.showing-test-container.tiles-classic {
 }
 
 #complexity-graph .regression polygon {
-    fill: rgba(253, 253, 253, .05);
+    fill: rgba(253, 253, 253, .2);
 }
 
 #complexity-graph .raw.series line {
     stroke: hsla(30, 96%, 56%, .3);
     stroke-width: 1px;
+}
+
+#complexity-graph .raw.series line.mutation {
+    stroke: rgba(255, 255, 255, .15);
 }
 
 #complexity-graph .raw.regression line {
@@ -745,15 +802,6 @@ body.showing-test-container.tiles-classic {
 
 #complexity-graph .raw.regression polygon {
     stroke: rgba(30, 96%, 86%, .05);
-}
-
-#complexity-graph .average.series circle {
-    fill: hsl(170, 96%, 56%);
-}
-
-#complexity-graph .average.series line {
-    stroke: hsla(170, 96%, 56%, .2);
-    stroke-width: 2px;
 }
 
 #complexity-graph .bootstrap .bar {
@@ -770,5 +818,5 @@ body.showing-test-container.tiles-classic {
 }
 
 #complexity-graph .bootstrap .median polygon {
-    fill: hsla(300, 56%, 66%, .05);
+    fill: hsla(240, 56%, 66%, .4);
 }
