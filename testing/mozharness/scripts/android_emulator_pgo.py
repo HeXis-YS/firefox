@@ -291,6 +291,8 @@ class AndroidProfileRun(TestingMixin, BaseScript, MozbaseMixin, AndroidMixin):
             )
             driver.start_session()
 
+            driver.navigate("http://%s:%d/js-input/webkit/PerformanceTests/JetStream3/index.html" % (IP, PORT))
+            self.wait_for_emulator()
             driver.navigate("http://%s:%d/js-input/webkit/PerformanceTests/Speedometer3/index.html?tags=all&startAutomatically=true" % (IP, PORT))
             self.wait_for_emulator()
             driver.navigate("http://%s:%d/js-input/webkit/PerformanceTests/MotionMark/index.html" % (IP, PORT))
