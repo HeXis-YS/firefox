@@ -305,6 +305,19 @@ class AndroidProfileRun(TestingMixin, BaseScript, MozbaseMixin, AndroidMixin):
                 timeout = 2
                 time.sleep(timeout)
 
+            driver.navigate("https://live.bilibili.com")
+            time.sleep(10)
+            driver.navigate("https://www.cloudflare.com")
+            time.sleep(5)
+            driver.navigate("https://www.baidu.com")
+            time.sleep(5)
+            driver.navigate("https://cn.bing.com")
+            time.sleep(5)
+            driver.navigate("https://www.bilibili.com")
+            time.sleep(5)
+            driver.navigate("https://github.com")
+            time.sleep(5)
+
             driver.set_context("chrome")
             driver.execute_script(
                 """
