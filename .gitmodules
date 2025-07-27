@@ -1,0 +1,9 @@
+[submodule "Speedometer"]
+	path = third_party/webkit/PerformanceTests/Speedometer3
+	url = https://github.com/HeXis-YS/Speedometer
+[submodule "JetStream"]
+	path = third_party/webkit/PerformanceTests/JetStream
+	url = https://github.com/HeXis-YS/JetStream
+[submodule "MotionMark"]
+	path = third_party/webkit/PerformanceTests/MotionMark
+	url = https://github.com/HeXis-YS/MotionMark
