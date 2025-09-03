@@ -350,6 +350,9 @@ export class BenchmarkRunner {
 
         if (this._client?.didFinishLastIteration)
             await this._client.didFinishLastIteration(this._metrics);
+
+        if (window.opener && !window.opener.closed)
+            window.opener.postMessage("testCompleted", "*");
     }
 
     _removeFrame() {
@@ -574,9 +577,9 @@ export class BenchmarkRunner {
             // Prepare all iteration metrics so they are listed at the end of
             // of the _metrics object, before "Total" and "Score".
             for (let i = 0; i < this._iterationCount; i++)
-                iterationTotalMetric(i).description = `Test totals for iteration ${i}`;
-            getMetric("Geomean", "ms").description = "Geomean of test totals";
-            getMetric("Score", "score").description = "Scaled inverse of the Geomean";
+                iterationTotalMetric(i);
+            getMetric("Geomean");
+            getMetric("Score", "score");
         }
 
         const geomean = getMetric("Geomean");
