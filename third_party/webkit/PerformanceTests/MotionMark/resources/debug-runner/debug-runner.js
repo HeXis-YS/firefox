@@ -1,3 +1,27 @@
+/*
+ * Copyright (C) 2015-2020 Apple Inc. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY APPLE INC. AND ITS CONTRIBUTORS ``AS IS''
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL APPLE INC. OR ITS CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE.
+ */
 ProgressBar = Utilities.createClass(
     function(element, ranges)
     {
@@ -110,7 +134,7 @@ Utilities.extendObject(window.benchmarkRunnerClient, {
 
     willStartFirstIteration: function()
     {
-        this.results = new ResultsDashboard(this.options);
+        this.results = new ResultsDashboard(Strings.version, this.options);
         this.progressBar = new ProgressBar(document.getElementById("progress-completed"), this.testsCount);
     },
 
@@ -134,8 +158,7 @@ Utilities.extendObject(window.sectionsManager, {
     }
 });
 
-window.optionsManager =
-{
+window.optionsManager = {
     valueForOption: function(name)
     {
         var formElement = document.forms["benchmark-options"].elements[name];
@@ -227,8 +250,7 @@ window.optionsManager =
     }
 };
 
-window.suitesManager =
-{
+window.suitesManager = {
     _treeElement: function()
     {
         return document.querySelector("#suites > .tree");
@@ -336,7 +358,7 @@ window.suitesManager =
         var link = Utilities.createElement("span", {}, testElement);
         link.classList.add("link");
         link.textContent = "link";
-        link.suiteName = Utilities.stripNonASCIICharacters(suiteCheckbox.suite.name);
+        link.suiteName = Utilities.stripUnwantedCharactersForURL(suiteCheckbox.suite.name);
         link.testName = test.name;
         link.onclick = function(event) {
             var element = event.target;
@@ -345,7 +367,7 @@ window.suitesManager =
             var options = optionsManager.updateLocalStorageFromUI();
             Utilities.extendObject(options, {
                 "suite-name": element.suiteName,
-                "test-name": Utilities.stripNonASCIICharacters(element.testName)
+                "test-name": Utilities.stripUnwantedCharactersForURL(element.testName)
             });
             var complexity = suitesManager._editElement(element.parentNode).value;
             if (complexity)
@@ -381,7 +403,7 @@ window.suitesManager =
     updateEditsElementsState: function()
     {
         var editsElements = this._editsElements();
-        var showComplexityInputs = ["fixed", "step"].indexOf(optionsManager.valueForOption("controller")) != -1;
+        var showComplexityInputs = optionsManager.valueForOption("controller") == "fixed";
 
         for (var i = 0; i < editsElements.length; ++i) {
             var editElement = editsElements[i];
@@ -455,55 +477,24 @@ window.suitesManager =
         return suites;
     },
 
-    suitesFromQueryString: function(suiteName, testName, oskey=null)
+    suitesFromQueryString: function(suiteName, testName)
     {
+        suiteName = decodeURIComponent(suiteName);
+        testName = decodeURIComponent(testName);
+
         var suites = [];
         var suiteRegExp = new RegExp(suiteName, "i");
         var testRegExp = new RegExp(testName, "i");
 
         for (var i = 0; i < Suites.length; ++i) {
             var suite = Suites[i];
-            if (!Utilities.stripNonASCIICharacters(suite.name).match(suiteRegExp))
+            if (!Utilities.stripUnwantedCharactersForURL(suite.name).match(suiteRegExp))
                 continue;
 
             var test;
             for (var j = 0; j < suite.tests.length; ++j) {
                 suiteTest = suite.tests[j];
-                // MOZILLA: Run all the tests in a given suite
-                if (typeof(testName) === "undefined") {
-                    let complexity = {"HTMLsuite": {
-                        "CSSbouncingcircles": {"win": 322, "linux64": 322, "osx": 218},
-                        "CSSbouncingclippedrects": {"win": 520, "linux64": 520, "osx": 75},
-                        "CSSbouncinggradientcircles": {"win": 402, "linux64": 402, "osx": 97},
-                        "CSSbouncingblendcircles": {"win": 171, "linux64": 171, "osx": 254},
-                        "CSSbouncingfiltercircles": {"win": 189, "linux64": 189, "osx": 189},
-                        "CSSbouncingSVGimages": {"win": 329, "linux64": 329, "osx": 392},
-                        "CSSbouncingtaggedimages": {"win": 255, "linux64": 255, "osx": 351},
-                        "Leaves20": {"win": 262, "linux64": 262, "osx": 191},
-                        "Focus20": {"win": 15, "linux64": 15, "osx": 18},
-                        "DOMparticlesSVGmasks": {"win": 390, "linux64": 390, "osx": 54},
-                        "CompositedTransforms": {"win": 400, "linux64": 400, "osx": 75}
-                      }, "Animometer": {
-                        "Multiply": {"win": 391, "linux64": 391, "osx": 193},
-                        "CanvasArcs": {"win": 1287, "linux64": 1287, "osx": 575},
-                        "Leaves": {"win": 550, "linux64": 550, "osx": 271},
-                        "Paths": {"win": 4070, "linux64": 4070, "osx": 2024},
-                        "CanvasLines": {"win": 4692, "linux64": 4692, "osx": 10932},
-                        "Focus": {"win": 44, "linux64": 44, "osx": 32},
-                        "Images": {"win": 293, "linux64": 293, "osx": 188},
-                        "Design": {"win": 60, "linux64": 60, "osx": 17},
-                        "Suits": {"win": 210, "linux64": 210, "osx": 145}
-                      }
-                    };
-                    if (oskey == null) {
-                        oskey = "linux64";
-                    }
-                    suiteTest.complexity = complexity[suiteName][Utilities.stripNonASCIICharacters(suiteTest.name)][oskey];
-                    suites.push(new Suite(suiteName, [suiteTest]));
-                    continue;
-                }
-
-                if (Utilities.stripNonASCIICharacters(suiteTest.name).match(testRegExp)) {
+                if (Utilities.stripUnwantedCharactersForURL(suiteTest.name).match(testRegExp)) {
                     test = suiteTest;
                     break;
                 }
@@ -537,8 +528,13 @@ window.suitesManager =
 }
 
 Utilities.extendObject(window.benchmarkController, {
-    initialize: function()
+    initialize: async function()
     {
+        document.title = Strings.text.title.replace("%s", Strings.version);
+        document.querySelectorAll(".version").forEach(function(e) {
+            e.textContent = Strings.version;
+        });
+
         document.forms["benchmark-options"].addEventListener("change", benchmarkController.onBenchmarkOptionsChanged, true);
         document.forms["graph-type"].addEventListener("change", benchmarkController.onGraphTypeChanged, true);
         document.forms["time-graph-options"].addEventListener("change", benchmarkController.onTimeGraphOptionsChanged, true);
@@ -560,41 +556,102 @@ Utilities.extendObject(window.benchmarkController, {
             e.stopPropagation();
             e.preventDefault();
         }
-        dropTarget.addEventListener("dragenter", stopEvent, false);
-        dropTarget.addEventListener("dragover", stopEvent, false);
-        dropTarget.addEventListener("dragleave", stopEvent, false);
-        dropTarget.addEventListener("drop", function (e) {
-            e.stopPropagation();
-            e.preventDefault();
+        dropTarget.addEventListener("dragenter", (e) => {
+            dropTarget.classList.add("drag-over");
+            stopEvent(e);
+        }, false);
 
-            if (!e.dataTransfer.files.length)
+        dropTarget.addEventListener("dragover", stopEvent, false);
+
+        dropTarget.addEventListener("dragleave", (e) => {
+            dropTarget.classList.remove("drag-over");
+            stopEvent(e);
+        }, false);
+
+        dropTarget.addEventListener("drop", function (e) {
+            stopEvent(e);
+
+            if (!e.dataTransfer.files.length) {
+                dropTarget.classList.remove("drag-over");
                 return;
+            }
+
+            dropTarget.textContent = 'Processing…';
 
             var file = e.dataTransfer.files[0];
 
             var reader = new FileReader();
             reader.filename = file.name;
-            reader.onload = function(e) {
+            reader.onload = (e) => {
                 var run = JSON.parse(e.target.result);
                 if (run.debugOutput instanceof Array)
                     run = run.debugOutput[0];
-                benchmarkRunnerClient.results = new ResultsDashboard(run.options, run.data);
+
+                benchmarkController.migrateImportedData(run);
+                benchmarkRunnerClient.results = new ResultsDashboard(run.version, run.options, run.data);
                 benchmarkController.showResults();
             };
 
             reader.readAsText(file);
             document.title = "File: " + reader.filename;
         }, false);
+
+        this.frameRateDetectionComplete = false;
+        this.updateStartButtonState();
+
+        let progressElement = document.querySelector("#frame-rate-detection span");
+
+        let targetFrameRate;
+        try {
+            targetFrameRate = await benchmarkController.determineFrameRate(progressElement);
+        } catch (e) {
+        }
+        
+        this.frameRateDeterminationComplete(targetFrameRate);
+    },
+
+    migrateImportedData: function(runData)
+    {
+        if (!("version" in runData))
+            runData.version = "1.0";
+        
+        if (!("frame-rate" in runData.options)) {
+            runData.options["frame-rate"] = 60;
+            console.log("No frame-rate data; assuming 60fps")
+        }
+
+        if (!("system-frame-rate" in runData.options)) {
+            runData.options["system-frame-rate"] = 60;
+            console.log("No system-frame-rate data; assuming 60fps")
+        }
+    },
+
+    frameRateDeterminationComplete: function(targetFrameRate)
+    {
+        let frameRateLabelContent = Strings.text.usingFrameRate.replace("%s", targetFrameRate);
+        
+        if (!targetFrameRate) {
+            frameRateLabelContent = Strings.text.frameRateDetectionFailure;
+            targetFrameRate = 60;
+        }
+
+        document.getElementById("frame-rate-detection").textContent = frameRateLabelContent;
+        document.getElementById("system-frame-rate").value = targetFrameRate;
+        document.getElementById("frame-rate").value = targetFrameRate;
+
+        this.frameRateDetectionComplete = true;
+        this.updateStartButtonState();
     },
 
     updateStartButtonState: function()
     {
-        var startButton = document.getElementById("run-benchmark");
+        var startButton = document.getElementById("start-button");
         if ("isInLandscapeOrientation" in this && !this.isInLandscapeOrientation) {
             startButton.disabled = true;
             return;
         }
-        startButton.disabled = !suitesManager.isAtLeastOneTestSelected();
+        
+        startButton.disabled = (!suitesManager.isAtLeastOneTestSelected()) || !this.frameRateDetectionComplete;
     },
 
     onBenchmarkOptionsChanged: function(event)
@@ -615,21 +672,19 @@ Utilities.extendObject(window.benchmarkController, {
     startBenchmark: function()
     {
         benchmarkController.determineCanvasSize();
-        benchmarkController.options = optionsManager.updateLocalStorageFromUI();
+        benchmarkController.options = Utilities.mergeObjects(this.benchmarkDefaultParameters, optionsManager.updateLocalStorageFromUI());
         benchmarkController.suites = suitesManager.updateLocalStorageFromUI();
         this._startBenchmark(benchmarkController.suites, benchmarkController.options, "running-test");
     },
 
     startBenchmarkImmediatelyIfEncoded: function()
     {
+        benchmarkController.determineCanvasSize();
         benchmarkController.options = Utilities.convertQueryStringToObject(location.search);
         if (!benchmarkController.options)
             return false;
 
-        this.raptor = benchmarkController.options["raptor"];
-        benchmarkController.suites = suitesManager.suitesFromQueryString(benchmarkController.options["suite-name"],
-                                                                         benchmarkController.options["test-name"],
-                                                                         benchmarkController.options["oskey"]);
+        benchmarkController.suites = suitesManager.suitesFromQueryString(benchmarkController.options["suite-name"], benchmarkController.options["test-name"]);
         if (!benchmarkController.suites.length)
             return false;
 
@@ -652,7 +707,7 @@ Utilities.extendObject(window.benchmarkController, {
         }
 
         var dashboard = benchmarkRunnerClient.results;
-        if (["ramp", "ramp30"].indexOf(dashboard.options["controller"]) != -1)
+        if (dashboard.options["controller"] == "ramp")
             Headers.details[3].disabled = true;
         else {
             Headers.details[1].disabled = true;
@@ -665,32 +720,11 @@ Utilities.extendObject(window.benchmarkController, {
         }
 
         var score = dashboard.score;
-        var item = dashboard._results['iterationsResults'][0];
-        var fullNames = new Array;
-        var values = new Array;
-        for (var suite in item['testsResults']) {
-            for (var subtest in item['testsResults'][suite.toString()]) {
-                fullNames.push(suite.toString() + "-" + subtest.toString().replace(/ /g, '_'));
-                if (dashboard.options["controller"] === "fixed") {
-                    values.push(item['testsResults'][suite.toString()][subtest.toString()]['frameLength']['average']);
-                } else if (dashboard.options["controller"] === "ramp") {
-                    values.push(item['testsResults'][suite.toString()][subtest.toString()]['complexity']['bootstrap']['median']);
-                }
-
-           }
-        }
-        if (typeof tpRecordTime !== "undefined") {
-            tpRecordTime(values.join(','), 0, fullNames.join(','));
-        }
-        if (this.raptor) {
-          _data = ['raptor-benchmark', 'motionmark', item['testsResults']];
-          window.postMessage(_data, '*');
-          window.sessionStorage.setItem('benchmark_results',  JSON.stringify(_data));
-        }
-
         var confidence = ((dashboard.scoreLowerBound / score - 1) * 100).toFixed(2) +
             "% / +" + ((dashboard.scoreUpperBound / score - 1) * 100).toFixed(2) + "%";
-        sectionsManager.setSectionScore("results", score.toFixed(2), confidence);
+        var fps = dashboard._systemFrameRate;
+        sectionsManager.setSectionVersion("results", dashboard.version);
+        sectionsManager.setSectionScore("results", score.toFixed(2), confidence, fps);
         sectionsManager.populateTable("results-header", Headers.testName, dashboard);
         sectionsManager.populateTable("results-score", Headers.score, dashboard);
         sectionsManager.populateTable("results-data", Headers.details, dashboard);
