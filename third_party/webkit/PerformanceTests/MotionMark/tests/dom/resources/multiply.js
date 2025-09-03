@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2018 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -24,48 +24,25 @@
  */
 (function() {
 
-BouncingCanvasImage = Utilities.createSubclass(BouncingCanvasParticle,
-    function(stage)
-    {
-        BouncingCanvasParticle.call(this, stage, "image");
-        this._imageElement = stage.imageElement;
-    }, {
-
-    _draw: function()
-    {
-        this.context.save();
-            this.applyRotation();
-            this.context.drawImage(this._imageElement, 0, 0, this.size.x, this.size.y);
-        this.context.restore();
-    }
-});
-
-BouncingCanvasImagesStage = Utilities.createSubclass(BouncingCanvasParticlesStage,
-    function()
-    {
-        BouncingCanvasParticlesStage.call(this);
-    }, {
-
-    initialize: function(benchmark, options)
-    {
-        BouncingCanvasParticlesStage.prototype.initialize.call(this, benchmark, options);
-        var imageSrc = options["imageSrc"] || "../resources/yin-yang.svg";
-        this.imageElement = document.querySelector(".hidden[src=\"" + imageSrc + "\"]");
-    },
-
-    createParticle: function()
-    {
-        return new BouncingCanvasImage(this);
-    }
-});
-
-BouncingCanvasImagesBenchmark = Utilities.createSubclass(Benchmark,
+var MultiplyBenchmark = window.benchmarkClass;
+var MultiplyDerivedBenchmark = Utilities.createSubclass(MultiplyBenchmark,
     function(options)
     {
-        Benchmark.call(this, new BouncingCanvasImagesStage(), options);
+        switch (options["style"]) {
+        case "opacity":
+            options.visibleCSS = [["opacity", 0, 1]];
+            break;
+        case "display":
+            options.visibleCSS = [["display", "none", "block"]];
+            break;
+        case "visibility":
+            options.visibleCSS = [["visibility", "hidden", "visible"]];
+            break;
+        }
+        MultiplyBenchmark.call(this, options);
     }
 );
 
-window.benchmarkClass = BouncingCanvasImagesBenchmark;
+window.benchmarkClass = MultiplyDerivedBenchmark;
 
 })();
