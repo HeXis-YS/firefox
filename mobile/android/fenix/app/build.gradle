@@ -64,7 +64,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "org.mozilla"
+        applicationId "org.hexis"
         minSdkVersion config.minSdkVersion
         compileSdk config.compileSdkVersion
         targetSdkVersion config.targetSdkVersion
@@ -149,7 +149,7 @@ android {
                     // fatal consequences. For example see:
                     //  - https://issuetracker.google.com/issues/36924841
                     //  - https://issuetracker.google.com/issues/36905922
-                    "sharedUserId": "org.mozilla.firefox.sharedID",
+                    "sharedUserId": "org.hexis.firefox.sharedID",
                     "deepLinkScheme": deepLinkSchemeValue,
             ])
         }
@@ -166,7 +166,7 @@ android {
                     // fatal consequences. For example see:
                     //  - https://issuetracker.google.com/issues/36924841
                     //  - https://issuetracker.google.com/issues/36905922
-                    "sharedUserId": "org.mozilla.firefox.sharedID",
+                    "sharedUserId": "org.hexis.firefox.sharedID",
                     "deepLinkScheme": deepLinkSchemeValue,
             ])
         }
@@ -232,7 +232,7 @@ android {
             if (project.hasProperty("benchmarkTest")) {
                 include "arm64-v8a"
             } else {
-                include "x86", "armeabi-v7a", "arm64-v8a", "x86_64"
+                include "arm64-v8a"
             }
         }
     }
@@ -354,7 +354,7 @@ android.applicationVariants.configureEach { variant ->
 // -------------------------------------------------------------------------------------------------
 
     buildConfigField 'String', 'SENTRY_TOKEN', 'null'
-    if (!isDebug) {
+    if (false) {
         buildConfigField 'boolean', 'CRASH_REPORTING', 'true'
         // Reading sentry token from local file (if it exists). In a release task on taskcluster it will be available.
         try {
@@ -365,7 +365,7 @@ android.applicationVariants.configureEach { variant ->
         buildConfigField 'boolean', 'CRASH_REPORTING', 'false'
     }
 
-    if (!isDebug) {
+    if (false) {
         buildConfigField 'boolean', 'TELEMETRY', 'true'
     } else {
         buildConfigField 'boolean', 'TELEMETRY', 'false'
