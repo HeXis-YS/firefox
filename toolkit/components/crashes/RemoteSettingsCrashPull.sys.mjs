@@ -12,7 +12,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource://services-settings/RemoteSettingsClient.sys.mjs",
 });
 
-const REMOTE_SETTINGS_CRASH_COLLECTION = "crash-reports-ondemand";
+const REMOTE_SETTINGS_CRASH_COLLECTION = "";
 
 // Remote Settings collections might want a different limit
 const PENDING_REMOTE_CRASH_REPORT_DAYS = 90;
