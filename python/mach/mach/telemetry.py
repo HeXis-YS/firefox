@@ -83,19 +83,11 @@ def report_invocation_metrics(telemetry, command):
 
 
 def is_applicable_telemetry_environment():
-    if os.environ.get("MACH_MAIN_PID") != str(os.getpid()):
-        # This is a child mach process. Since we're collecting telemetry for the parent,
-        # we don't want to collect telemetry again down here.
-        return False
-
-    return True
+    return False
 
 
 def is_telemetry_enabled(settings):
-    if os.environ.get("DISABLE_TELEMETRY") == "1":
-        return False
-
-    return settings.mach_telemetry.is_enabled
+    return False
 
 
 def arcrc_path():
