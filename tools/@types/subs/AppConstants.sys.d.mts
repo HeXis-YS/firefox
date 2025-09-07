@@ -32,12 +32,12 @@ export const AppConstants: Readonly<{
 
   MOZ_SERVICES_SYNC: boolean;
 
-  MOZ_DATA_REPORTING: boolean;
+  MOZ_DATA_REPORTING: false;
 
   MOZ_SANDBOX: boolean;
 
   // #ifdef MOZ_TELEMETRY_REPORTING
-  MOZ_TELEMETRY_REPORTING: boolean;
+  MOZ_TELEMETRY_REPORTING: false;
 
   MOZ_UPDATER: boolean;
 

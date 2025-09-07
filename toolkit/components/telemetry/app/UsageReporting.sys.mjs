@@ -45,7 +45,7 @@ export var UsageReporting = {
 
       // Usage deletion requests can always be sent.  They are
       // always sent in response to user action.
-      GleanPings.usageDeletionRequest.setEnabled(true);
+      GleanPings.usageDeletionRequest.setEnabled(false);
 
       // Usage pings should only be sent when upload is enabled.
       // Eventually, Glean will persist this setting.
