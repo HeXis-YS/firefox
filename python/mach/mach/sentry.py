@@ -21,7 +21,7 @@ from mach.util import get_state_dir
 
 # https://sentry.io/organizations/mozilla/projects/mach/
 _SENTRY_DSN = (
-    "https://5cfe351fb3a24e8d82c751252b48722b@o1069899.ingest.sentry.io/6250014"
+    ""
 )
 
 
@@ -223,5 +223,5 @@ def _is_unmodified_mach_core(topsrcdir: Path):
         _is_unmodified_mach_core_result = False
 
 
-_is_unmodified_mach_core_result = None
-_is_unmodified_mach_core_thread = None
+_is_unmodified_mach_core_result = False
+_is_unmodified_mach_core_thread = False
