@@ -47,21 +47,6 @@ bool IsInDataset(uint32_t aDataset, uint32_t aContainingDataset) {
 
 bool CanRecordDataset(uint32_t aDataset, bool aCanRecordBase,
                       bool aCanRecordExtended) {
-  // If we are extended telemetry is enabled, we are allowed to record
-  // regardless of the dataset.
-  if (aCanRecordExtended) {
-    return true;
-  }
-
-  // If base telemetry data is enabled and we're trying to record base
-  // telemetry, allow it.
-  if (aCanRecordBase &&
-      IsInDataset(aDataset, nsITelemetry::DATASET_ALL_CHANNELS)) {
-    return true;
-  }
-
-  // We're not recording extended telemetry or this is not the base
-  // dataset. Bail out.
   return false;
 }
 

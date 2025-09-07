@@ -72,7 +72,7 @@ pub extern "C" fn fog_init(
     disable_internal_pings: bool,
 ) -> nsresult {
     // On Android always enable Glean upload.
-    let upload_enabled = true;
+    let upload_enabled = false;
     // Don't set up an uploader.
     let uploader = None;
 
@@ -155,7 +155,7 @@ fn build_configuration(
         if app_id_override == "thunderbird.desktop" {
             String::from("https://incoming.thunderbird.net")
         } else {
-            String::from("https://incoming.telemetry.mozilla.org")
+            String::from("")
         }
     };
 
@@ -186,13 +186,13 @@ fn build_configuration(
         delay_ping_lifetime_io: true,
         server_endpoint: Some(server),
         uploader: None,
-        use_core_mps: true,
+        use_core_mps: false,
         trim_data_to_registered_pings: true,
         log_level: None,
         rate_limit,
         enable_event_timestamps: true,
         experimentation_id: None,
-        enable_internal_pings: true,
+        enable_internal_pings: false,
         ping_schedule: pings::ping_schedule(),
         ping_lifetime_threshold: 0,
         ping_lifetime_max_time: Duration::ZERO,
@@ -374,7 +374,7 @@ fn fog_test_reset_internal(
     let (mut conf, client_info) = build_configuration(data_path_override, app_id_override)?;
 
     // On Android always enable Glean upload.
-    conf.upload_enabled = true;
+    conf.upload_enabled = false;
 
     // Don't accidentally send "main" pings during tests.
     conf.use_core_mps = false;

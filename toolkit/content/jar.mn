@@ -37,9 +37,6 @@ toolkit.jar:
    content/global/aboutGlean.html
    content/global/aboutGlean.css
 #endif
-   content/global/aboutTelemetry.js
-   content/global/aboutTelemetry.xhtml
-   content/global/aboutTelemetry.css
    content/global/aboutUrlClassifier.js
    content/global/aboutUrlClassifier.xhtml
    content/global/aboutUrlClassifier.css

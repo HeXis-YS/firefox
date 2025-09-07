@@ -117,7 +117,7 @@ fn ohttp_upload(upload_request: PingUploadRequest) -> Result<UploadResult, Viadu
     let ohttp_request = ohttp::ClientRequest::from_encoded_config(config)?;
     let (capsule, ohttp_response) = ohttp_request.encapsulate(&binary_request)?;
 
-    const OHTTP_RELAY_URL: &str = "https://mozilla-ohttp.fastly-edge.com/";
+    const OHTTP_RELAY_URL: &str = "";
     let parsed_relay_url = Url::parse(OHTTP_RELAY_URL)?;
 
     log::trace!("FOG ohttp uploader uploading to {}", parsed_relay_url);
@@ -148,7 +148,7 @@ fn ohttp_upload(upload_request: PingUploadRequest) -> Result<UploadResult, Viadu
 
 fn get_config() -> Result<Vec<u8>, ViaductUploaderError> {
     const OHTTP_CONFIG_URL: &str =
-        "https://prod.ohttp-gateway.prod.webservices.mozgcp.net/ohttp-configs";
+        "";
     log::trace!("Getting OHTTP config from {}", OHTTP_CONFIG_URL);
     let parsed_config_url = Url::parse(OHTTP_CONFIG_URL)?;
     Ok(Request::get(parsed_config_url).send()?.body)
