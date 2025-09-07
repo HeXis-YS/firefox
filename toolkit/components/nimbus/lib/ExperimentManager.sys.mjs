@@ -31,8 +31,7 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
 
 /** @typedef {import("./PrefFlipsFeature.sys.mjs").PrefBranch} PrefBranch */
 
-const IS_MAIN_PROCESS =
-  Services.appinfo.processType === Services.appinfo.PROCESS_TYPE_DEFAULT;
+const IS_MAIN_PROCESS = false;
 
 export const UnenrollmentCause = {
   fromCheckRecipeResult(result) {
@@ -146,57 +145,6 @@ export class ExperimentManager {
         return new Date();
       },
     };
-    Object.defineProperty(context, "activeExperiments", {
-      enumerable: true,
-      get: async () => {
-        await this.store.ready();
-        return this.store.getAllActiveExperiments().map(exp => exp.slug);
-      },
-    });
-    Object.defineProperty(context, "activeRollouts", {
-      enumerable: true,
-      get: async () => {
-        await this.store.ready();
-        return this.store.getAllActiveRollouts().map(rollout => rollout.slug);
-      },
-    });
-    Object.defineProperty(context, "previousExperiments", {
-      enumerable: true,
-      get: async () => {
-        await this.store.ready();
-        return this.store
-          .getAll()
-          .filter(enrollment => !enrollment.active && !enrollment.isRollout)
-          .map(exp => exp.slug);
-      },
-    });
-    Object.defineProperty(context, "previousRollouts", {
-      enumerable: true,
-      get: async () => {
-        await this.store.ready();
-        return this.store
-          .getAll()
-          .filter(enrollment => !enrollment.active && enrollment.isRollout)
-          .map(rollout => rollout.slug);
-      },
-    });
-    Object.defineProperty(context, "enrollments", {
-      enumerable: true,
-      get: async () => {
-        await this.store.ready();
-        return this.store.getAll().map(enrollment => enrollment.slug);
-      },
-    });
-    Object.defineProperty(context, "enrollmentsMap", {
-      enumerable: true,
-      get: async () => {
-        await this.store.ready();
-        return this.store.getAll().reduce((acc, enrollment) => {
-          acc[enrollment.slug] = enrollment.branch.slug;
-          return acc;
-        }, {});
-      },
-    });
     return context;
   }
 

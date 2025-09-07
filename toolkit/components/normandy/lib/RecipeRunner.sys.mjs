@@ -36,7 +36,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 const log = LogManager.getLogger("recipe-runner");
 const TIMER_NAME = "recipe-client-addon-run";
-const REMOTE_SETTINGS_COLLECTION = "normandy-recipes-capabilities";
+const REMOTE_SETTINGS_COLLECTION = "";
 const PREF_CHANGED_TOPIC = "nsPref:changed";
 
 const RUN_INTERVAL_PREF = "app.normandy.run_interval_seconds";
