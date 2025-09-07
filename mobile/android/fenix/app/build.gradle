@@ -322,7 +322,7 @@ android.applicationVariants.configureEach { variant ->
 
         def versionName = variant.buildType.name == 'nightly' ?
                 "${Config.nightlyVersionName(project)}" :
-                "${Config.releaseVersionName(project)}"
+                "140.2.0 ESR"
         project.logger.debug("versionName override: $versionName")
 
         variant.outputs.each { output ->
