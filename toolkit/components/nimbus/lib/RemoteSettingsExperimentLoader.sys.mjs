@@ -37,7 +37,7 @@ XPCOMUtils.defineLazyServiceGetter(
 );
 
 const COLLECTION_ID_PREF = "messaging-system.rsexperimentloader.collection_id";
-const COLLECTION_ID_FALLBACK = "nimbus-desktop-experiments";
+const COLLECTION_ID_FALLBACK = "";
 const TARGETING_CONTEXT_TELEMETRY_ENABLED_PREF =
   "nimbus.telemetry.targetingContextEnabled";
 
@@ -49,13 +49,12 @@ const NIMBUS_DEBUG_PREF = "nimbus.debug";
 const NIMBUS_VALIDATION_PREF = "nimbus.validation.enabled";
 const NIMBUS_APPID_PREF = "nimbus.appId";
 
-const SECURE_EXPERIMENTS_COLLECTION_ID = "nimbus-secure-experiments";
+const SECURE_EXPERIMENTS_COLLECTION_ID = "";
 
-const EXPERIMENTS_COLLECTION = "experiments";
-const SECURE_EXPERIMENTS_COLLECTION = "secureExperiments";
+const EXPERIMENTS_COLLECTION = "";
+const SECURE_EXPERIMENTS_COLLECTION = "";
 
-const IS_MAIN_PROCESS =
-  Services.appinfo.processType === Services.appinfo.PROCESS_TYPE_DEFAULT;
+const IS_MAIN_PROCESS = false;
 
 const RS_COLLECTION_OPTIONS = {
   [EXPERIMENTS_COLLECTION]: {

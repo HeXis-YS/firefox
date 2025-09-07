@@ -29,14 +29,13 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
 const CRASHREPORTER_ENABLED =
   AppConstants.MOZ_CRASHREPORTER && AppConstants.MOZ_APP_NAME !== "thunderbird";
 
-const IS_MAIN_PROCESS =
-  Services.appinfo.processType === Services.appinfo.PROCESS_TYPE_DEFAULT;
+const IS_MAIN_PROCESS = false;
 
 const UPLOAD_ENABLED_PREF = "datareporting.healthreport.uploadEnabled";
 const STUDIES_OPT_OUT_PREF = "app.shield.optoutstudies.enabled";
 
 const COLLECTION_ID_PREF = "messaging-system.rsexperimentloader.collection_id";
-const COLLECTION_ID_FALLBACK = "nimbus-desktop-experiments";
+const COLLECTION_ID_FALLBACK = "";
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "COLLECTION_ID",
