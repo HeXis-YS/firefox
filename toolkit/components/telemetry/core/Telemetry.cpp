@@ -883,12 +883,7 @@ TelemetryImpl::GetCanRecordPrereleaseData(bool* ret) {
 
 NS_IMETHODIMP
 TelemetryImpl::GetIsOfficialTelemetry(bool* ret) {
-#if defined(MOZILLA_OFFICIAL) && defined(MOZ_TELEMETRY_REPORTING) && \
-    !defined(DEBUG)
-  *ret = true;
-#else
   *ret = false;
-#endif
   return NS_OK;
 }
 
@@ -901,18 +896,6 @@ already_AddRefed<nsITelemetry> TelemetryImpl::CreateTelemetryInstance() {
   }
 
   bool useTelemetry = false;
-#ifndef FUZZING
-  if (XRE_IsParentProcess() || XRE_IsContentProcess() || XRE_IsGPUProcess() ||
-      XRE_IsRDDProcess() || XRE_IsSocketProcess() || XRE_IsUtilityProcess()) {
-    useTelemetry = true;
-  }
-#endif
-#ifdef MOZ_BACKGROUNDTASKS
-  if (BackgroundTasks::IsBackgroundTaskMode()) {
-    // Background tasks collect per-task metrics with Glean.
-    useTelemetry = false;
-  }
-#endif
 
   // First, initialize the TelemetryHistogram and TelemetryScalar global states.
   TelemetryHistogram::InitializeGlobalState(useTelemetry, useTelemetry);

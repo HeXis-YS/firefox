@@ -104,11 +104,8 @@ export var TelemetryControllerBase = Object.freeze({
     const isReleaseCandidateOnBeta =
       AppConstants.MOZ_UPDATE_CHANNEL === "release" &&
       Services.prefs.getCharPref("app.update.channel", null) === "beta";
-    Services.telemetry.canRecordBase = true;
-    Services.telemetry.canRecordExtended =
-      isPrereleaseChannel ||
-      isReleaseCandidateOnBeta ||
-      Services.prefs.getBoolPref(this.Preferences.OverridePreRelease, false);
+    Services.telemetry.canRecordBase = false;
+    Services.telemetry.canRecordExtended = false;
   },
 
   /**
