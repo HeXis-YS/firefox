@@ -4590,10 +4590,7 @@ AMRemoteSettings = {
    *   the settings groups defined here.
    */
   RS_ENTRIES_MAP: {
-    installTriggerDeprecation: [
-      "extensions.InstallTriggerImpl.enabled",
-      "extensions.InstallTrigger.enabled",
-    ],
+    installTriggerDeprecation: [],
     quarantinedDomains: ["extensions.quarantinedDomains.list"],
   },
 
