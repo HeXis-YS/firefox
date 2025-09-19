@@ -252,7 +252,7 @@ class SecretSettingsFragment : PreferenceFragmentCompat() {
             // the session.
             isChecked = context.settings().preferences.getBoolean(
                 context.getPreferenceKey(R.string.pref_key_persistent_debug_menu),
-                false,
+                true,
             )
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
