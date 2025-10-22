@@ -1,5 +1,7 @@
-import { Suites, Tags } from "./tests.mjs";
-import { params, defaultParams } from "./params.mjs";
+import { params, LAYOUT_MODES } from "./shared/params.mjs";
+import { benchmarkConfigurator } from "./benchmark-configurator.mjs";
+
+const { suites, tags } = benchmarkConfigurator;
 
 export function createDeveloperModeContainer() {
     const container = document.createElement("div");
@@ -18,10 +20,12 @@ export function createDeveloperModeContainer() {
     const settings = document.createElement("div");
     settings.className = "settings";
     settings.append(createUIForIterationCount());
-    settings.append(createUIForMeasurementMethod());
+    settings.append(createUIForMeasurePrepare());
     settings.append(createUIForWarmupSuite());
     settings.append(createUIForWarmupBeforeSync());
     settings.append(createUIForSyncStepDelay());
+    settings.append(createUIForAsyncSteps());
+    settings.append(createUIForLayoutMode());
 
     content.append(document.createElement("hr"));
     content.append(settings);
@@ -40,79 +44,63 @@ function span(text) {
     return span;
 }
 
-function createUIForMeasurementMethod() {
-    let check = document.createElement("input");
-    check.type = "checkbox";
-    check.id = "measurement-method";
-    check.checked = params.measurementMethod === "raf";
-
-    check.onchange = () => {
-        params.measurementMethod = check.checked ? "raf" : "timer";
-        updateURL();
-    };
-
-    let label = document.createElement("label");
-    label.append(check, " ", span("rAF timing"));
-
-    return label;
+function createUIForWarmupSuite() {
+    return createCheckboxUI("Use Warmup Suite", params.useWarmupSuite, (isChecked) => {
+        params.useWarmupSuite = isChecked;
+    });
 }
 
-function createUIForWarmupSuite() {
-    let check = document.createElement("input");
-    check.type = "checkbox";
-    check.id = "warmup-suite";
-    check.checked = !!params.useWarmupSuite;
+function createUIForMeasurePrepare() {
+    return createCheckboxUI("Measure Prepare", params.measurePrepare, (isChecked) => {
+        params.measurePrepare = isChecked;
+    });
+}
 
-    check.onchange = () => {
-        params.useWarmupSuite = check.checked;
+function createUIForAsyncSteps() {
+    return createCheckboxUI("Use Async Steps", params.useAsyncSteps, (isChecked) => {
+        params.useAsyncSteps = isChecked;
+    });
+}
+
+function createCheckboxUI(labelValue, initialValue, paramsUpdateCallback) {
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = !!initialValue;
+    checkbox.onchange = () => {
+        paramsUpdateCallback(checkbox.checked);
         updateURL();
     };
 
-    let label = document.createElement("label");
-    label.append(check, " ", span("Use Warmup Suite"));
+    const label = document.createElement("label");
+    label.append(checkbox, " ", span(labelValue));
 
     return label;
 }
 
 function createUIForIterationCount() {
-    const { range, label } = createTimeRangeUI("Iterations: ", params.iterationCount, "#", 1, 200);
-    range.onchange = () => {
-        params.iterationCount = parseInt(range.value);
-        updateURL();
-    };
-    return label;
+    return createTimeRangeUI("Iterations: ", "iterationCount", "#", 1, 200);
 }
 
 function createUIForWarmupBeforeSync() {
-    const { range, label } = createTimeRangeUI("Warmup time: ", params.warmupBeforeSync);
-    range.onchange = () => {
-        params.warmupBeforeSync = parseInt(range.value);
-        updateURL();
-    };
-    return label;
+    return createTimeRangeUI("Warmup time: ", "warmupBeforeSync");
 }
 
 function createUIForSyncStepDelay() {
-    const { range, label } = createTimeRangeUI("Sync step delay: ", params.waitBeforeSync);
-    range.onchange = () => {
-        params.waitBeforeSync = parseInt(range.value);
-        updateURL();
-    };
-    return label;
+    return createTimeRangeUI("Sync step delay: ", "waitBeforeSync");
 }
 
-function createTimeRangeUI(labelText, initialValue, unit = "ms", min = 0, max = 1000) {
+function createTimeRangeUI(labelText, paramKey, unit = "ms", min = 0, max = 1000) {
     const range = document.createElement("input");
     range.type = "range";
     range.min = min;
     range.max = max;
-    range.value = initialValue;
+    range.value = params[paramKey];
 
     const rangeValueAndUnit = document.createElement("span");
     rangeValueAndUnit.className = "range-label-data";
 
     const rangeValue = document.createElement("span");
-    rangeValue.textContent = initialValue;
+    rangeValue.textContent = params[paramKey];
     rangeValueAndUnit.append(rangeValue, " ", unit);
 
     const label = document.createElement("label");
@@ -121,28 +109,59 @@ function createTimeRangeUI(labelText, initialValue, unit = "ms", min = 0, max = 
     range.oninput = () => {
         rangeValue.textContent = range.value;
     };
+    range.onchange = () => {
+        params[paramKey] = parseInt(range.value);
+        updateURL();
+    };
 
-    return { range, label };
+    return label;
+}
+
+function createUIForLayoutMode() {
+    return createSelectUI("Force layout mode", params.layoutMode, LAYOUT_MODES, (value) => {
+        params.layoutMode = value;
+    });
+}
+
+function createSelectUI(labelValue, initialValue, choices, paramsUpdateCallback) {
+    const select = document.createElement("select");
+    select.onchange = () => {
+        paramsUpdateCallback(select.value);
+        updateURL();
+    };
+
+    choices.forEach((choice) => {
+        const option = new Option(choice, choice);
+        select.add(option);
+    });
+    select.value = initialValue;
+
+    const label = document.createElement("label");
+    label.append(span(labelValue), select);
+
+    return label;
 }
 
 function createUIForSuites() {
     const control = document.createElement("nav");
     control.className = "suites";
-    const ol = document.createElement("ol");
     const checkboxes = [];
     const setSuiteEnabled = (suiteIndex, enabled) => {
-        Suites[suiteIndex].disabled = !enabled;
+        suites[suiteIndex].enabled = enabled;
         checkboxes[suiteIndex].checked = enabled;
     };
 
-    for (const suite of Suites) {
+    control.appendChild(createSuitesGlobalSelectButtons(setSuiteEnabled));
+
+    const ol = document.createElement("ol");
+    for (const suite of suites) {
         const li = document.createElement("li");
         const checkbox = document.createElement("input");
         checkbox.id = suite.name;
         checkbox.type = "checkbox";
-        checkbox.checked = !suite.disabled;
+        checkbox.checked = suite.enabled;
         checkbox.onchange = () => {
-            suite.disabled = !checkbox.checked;
+            suite.enabled = checkbox.checked;
             updateURL();
         };
         checkboxes.push(checkbox);
@@ -152,8 +171,8 @@ function createUIForSuites() {
         li.appendChild(label);
         label.onclick = (event) => {
             if (event?.ctrlKey || event?.metaKey) {
-                for (let suiteIndex = 0; suiteIndex < Suites.length; suiteIndex++) {
-                    if (Suites[suiteIndex] !== suite)
+                for (let suiteIndex = 0; suiteIndex < suites.length; suiteIndex++) {
+                    if (suites[suiteIndex] !== suite)
                         setSuiteEnabled(suiteIndex, false);
                     else
                         setSuiteEnabled(suiteIndex, true);
@@ -164,13 +183,19 @@ function createUIForSuites() {
         ol.appendChild(li);
     }
     control.appendChild(ol);
-    let buttons = control.appendChild(document.createElement("div"));
+    control.appendChild(createSuitesTagsButton(setSuiteEnabled));
+    return control;
+}
+
+function createSuitesGlobalSelectButtons(setSuiteEnabled) {
+    const buttons = document.createElement("div");
     buttons.className = "button-bar";
 
     let button = document.createElement("button");
+    button.className = "select-all";
     button.textContent = "Select all";
     button.onclick = () => {
-        for (let suiteIndex = 0; suiteIndex < Suites.length; suiteIndex++)
+        for (let suiteIndex = 0; suiteIndex < suites.length; suiteIndex++)
             setSuiteEnabled(suiteIndex, true);
 
         updateURL();
@@ -179,25 +204,32 @@ function createUIForSuites() {
 
     button = document.createElement("button");
     button.textContent = "Unselect all";
+    button.className = "unselect-all";
     button.onclick = () => {
-        for (let suiteIndex = 0; suiteIndex < Suites.length; suiteIndex++)
+        for (let suiteIndex = 0; suiteIndex < suites.length; suiteIndex++)
             setSuiteEnabled(suiteIndex, false);
 
         updateURL();
     };
     buttons.appendChild(button);
+    return buttons;
+}
 
+function createSuitesTagsButton(setSuiteEnabled) {
+    let container = document.createElement("div");
+    let buttons = container.appendChild(document.createElement("div"));
+    buttons.className = "button-bar";
     let i = 0;
     const kTagsPerLine = 3;
-    for (const tag of Tags) {
+    for (const tag of tags) {
         if (tag === "all")
             continue;
         if (!(i % kTagsPerLine)) {
-            buttons = control.appendChild(document.createElement("div"));
+            buttons = container.appendChild(document.createElement("div"));
             buttons.className = "button-bar";
         }
         i++;
-        button = document.createElement("button");
+        const button = document.createElement("button");
         button.className = "tag";
         button.textContent = `#${tag}`;
         button.dataTag = tag;
@@ -205,8 +237,8 @@ function createUIForSuites() {
             const extendSelection = event?.shiftKey;
             const invertSelection = event?.ctrlKey || event?.metaKey;
             const selectedTag = event.target.dataTag;
-            for (let suiteIndex = 0; suiteIndex < Suites.length; suiteIndex++) {
-                let enabled = Suites[suiteIndex].tags.includes(selectedTag);
+            for (let suiteIndex = 0; suiteIndex < suites.length; suiteIndex++) {
+                let enabled = suites[suiteIndex].tags.includes(selectedTag);
                 if (invertSelection)
                     enabled = !enabled;
                 if (extendSelection && !enabled)
@@ -217,72 +249,58 @@ function createUIForSuites() {
         };
         buttons.appendChild(button);
     }
-
-    return control;
+    return container;
 }
 
 function createUIForRun() {
-    let button = document.createElement("button");
-    button.textContent = "Start Test";
-    button.onclick = (event) => {
+    const stepTestButton = document.createElement("button");
+    stepTestButton.className = "step-button";
+    stepTestButton.innerHTML = "Step Test<span>\u23EF</span>";
+    stepTestButton.onclick = (event) => {
+        globalThis.benchmarkClient.step();
+    };
+    const startTestButton = document.createElement("button");
+    startTestButton.innerHTML = "Start Test<span>\u23F5</span>";
+    startTestButton.onclick = (event) => {
         globalThis.benchmarkClient.start();
     };
-    let buttons = document.createElement("div");
+    const buttons = document.createElement("div");
     buttons.className = "button-bar";
-    buttons.appendChild(button);
+    buttons.appendChild(stepTestButton);
+    buttons.appendChild(startTestButton);
     return buttons;
 }
 
-function updateURL() {
-    const url = new URL(window.location.href);
+function updateParamsSuitesAndTags() {
+    params.suites = [];
+    params.tags = [];
 
     // If less than all suites are selected then change the URL "Suites" GET parameter
     // to comma separate only the selected
-    const selectedSuites = Suites.filter((suite) => !suite.disabled);
+    const selectedSuites = suites.filter((suite) => suite.enabled);
+    if (!selectedSuites.length)
+        return;
 
-    if (!selectedSuites.length) {
-        url.searchParams.delete("tags");
-        url.searchParams.delete("suites");
-        url.searchParams.delete("suite");
-    } else {
-        url.searchParams.delete("tags");
-        url.searchParams.delete("suite");
-        // Try finding common tags that would result in the current suite selection.
-        let commonTags = new Set(selectedSuites[0].tags);
-        for (const suite of Suites) {
-            if (suite.disabled)
-                suite.tags.forEach((tag) => commonTags.delete(tag));
-            else
-                commonTags = new Set(suite.tags.filter((tag) => commonTags.has(tag)));
-        }
-        if (commonTags.size) {
-            const tags = [...commonTags][0];
-            if (tags === "default")
-                url.searchParams.delete("tags");
-            else
-                url.searchParams.set("tags", tags);
-            url.searchParams.delete("suites");
-        } else {
-            url.searchParams.delete("tags");
-            url.searchParams.set("suites", selectedSuites.map((suite) => suite.name).join(","));
-        }
-    }
-
-    if (params.measurementMethod !== "raf")
-        url.searchParams.set("measurementMethod", "timer");
-    else
-        url.searchParams.delete("measurementMethod");
-
-    const boolParamKeys = ["iterationCount", "useWarmupSuite", "warmupBeforeSync", "waitBeforeSync"];
-    for (const paramKey of boolParamKeys) {
-        if (params[paramKey] !== defaultParams[paramKey])
-            url.searchParams.set(paramKey, params[paramKey]);
+    // Try finding common tags that would result in the current suite selection.
+    let commonTags = new Set(selectedSuites[0].tags);
+    for (const suite of suites) {
+        if (suite.enabled)
+            commonTags = new Set(suite.tags.filter((tag) => commonTags.has(tag)));
         else
-            url.searchParams.delete(paramKey);
+            suite.tags.forEach((tag) => commonTags.delete(tag));
     }
+    if (selectedSuites.length > 1 && commonTags.size)
+        params.tags = [...commonTags];
+    else
+        params.suites = selectedSuites.map((suite) => suite.name);
+}
 
+function updateURL() {
+    updateParamsSuitesAndTags();
+
+    const url = new URL(window.location.href);
+    url.search = params.toSearchParams();
     // Only push state if changed
-    url.search = decodeURIComponent(url.search);
     if (url.href !== window.location.href)
         window.history.pushState({}, "", url);
 }

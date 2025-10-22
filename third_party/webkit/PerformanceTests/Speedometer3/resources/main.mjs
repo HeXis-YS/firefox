@@ -1,8 +1,7 @@
 import { BenchmarkRunner } from "./benchmark-runner.mjs";
 import * as Statistics from "./statistics.mjs";
-import { Suites } from "./tests.mjs";
 import { renderMetricView } from "./metric-ui.mjs";
-import { params } from "./params.mjs";
+import { defaultParams, params } from "./shared/params.mjs";
 import { createDeveloperModeContainer } from "./developer-mode.mjs";
 
 // FIXME(camillobruni): Add base class
@@ -17,35 +16,79 @@ class MainBenchmarkClient {
     _hasResults = false;
     _developerModeContainer = null;
     _metrics = Object.create(null);
+    _steppingPromise = null;
+    _steppingResolver = null;
+    _benchmarkConfiguratorPromise = null;
 
     constructor() {
-        window.addEventListener("DOMContentLoaded", () => this.prepareUI());
+        this._benchmarkConfiguratorPromise = import("./benchmark-configurator.mjs");
+        this.prepareUI();
+        this.evaluateParams();
         this._showSection(window.location.hash);
+
+        this._benchmarkConfiguratorPromise.then(() => {
+            window.dispatchEvent(new Event("SpeedometerReady"));
+        });
     }
 
     start() {
-        if (this._startBenchmark())
+        if (this._isStepping())
+            this._clearStepping();
+        else if (this._startBenchmark())
             this._showSection("#running");
     }
 
-    _startBenchmark() {
+    step() {
+        const currentSteppingResolver = this._steppingResolver;
+        this._steppingPromise = new Promise((resolve) => {
+            this._steppingResolver = resolve;
+        });
+        if (this._isStepping())
+            currentSteppingResolver();
+        if (!this._isRunning) {
+            this._startBenchmark();
+            this._showSection("#running");
+        }
+    }
+
+    _clearStepping() {
+        const currentSteppingResolver = this._steppingResolver;
+        this._steppingPromise = null;
+        this._steppingResolver = null;
+        currentSteppingResolver();
+    }
+
+    async _awaitNextStep(suite, test) {
+        console.log(`Next Step: ${suite.name} ${test.name}`, { suite, test });
+        await this._steppingPromise;
+    }
+
+    _isStepping() {
+        return this._steppingResolver !== null;
+    }
+
+    async _startBenchmark() {
         if (this._isRunning)
             return false;
 
-        if (Suites.every((suite) => suite.disabled)) {
+        const { benchmarkConfigurator } = await this._benchmarkConfiguratorPromise;
+
+        const enabledSuites = benchmarkConfigurator.suites.filter((suite) => suite.enabled);
+        const totalSuitesCount = enabledSuites.length;
+
+        if (totalSuitesCount === 0) {
             const message = `No suites selected - "${params.suites}" does not exist.`;
             alert(message);
             console.error(
                 message,
                 params.suites,
                 "\nValid values:",
-                Suites.map((each) => each.name)
+                benchmarkConfigurator.suites.map((each) => each.name)
             );
-
             return false;
         }
-
-        this._developerModeContainer?.remove();
+        if (!this._isStepping())
+            this._developerModeContainer?.remove();
         this._progressCompleted = document.getElementById("progress-completed");
         if (params.iterationCount < 50) {
             const progressNode = document.getElementById("progress");
@@ -59,14 +102,10 @@ class MainBenchmarkClient {
         this._metrics = Object.create(null);
         this._isRunning = true;
 
-        const enabledSuites = Suites.filter((suite) => !suite.disabled);
-        const totalSubtestsCount = enabledSuites.reduce((testsCount, suite) => {
-            return testsCount + suite.tests.length;
-        }, 0);
-        this.stepCount = params.iterationCount * totalSubtestsCount;
+        this.stepCount = params.iterationCount * totalSuitesCount;
         this._progressCompleted.max = this.stepCount;
         this.suitesCount = enabledSuites.length;
-        const runner = new BenchmarkRunner(Suites, this);
+        const runner = new BenchmarkRunner(benchmarkConfigurator.suites, this);
         runner.runMultipleIterations(params.iterationCount);
         return true;
     }
@@ -81,12 +120,14 @@ class MainBenchmarkClient {
         frame.style.transform = "translate(-50%, -50%)";
     }
 
-    willRunTest(suite, test) {
+    async willRunTest(suite, test) {
         document.getElementById("info-label").textContent = suite.name;
         document.getElementById("info-progress").textContent = `${this._finishedTestCount} / ${this.stepCount}`;
+        if (this._steppingPromise)
+            await this._awaitNextStep(suite, test);
     }
 
-    didRunTest() {
+    didFinishSuite() {
         this._finishedTestCount++;
         this._progressCompleted.value = this._finishedTestCount;
     }
@@ -107,17 +148,42 @@ class MainBenchmarkClient {
         this._metrics = metrics;
 
         const scoreResults = this._computeResults(this._measuredValuesList, "score");
-        this._updateGaugeNeedle(scoreResults.mean);
-        document.getElementById("result-number").textContent = scoreResults.formattedMean;
-        if (scoreResults.formattedDelta)
-            document.getElementById("confidence-number").textContent = `\u00b1 ${scoreResults.formattedDelta}`;
+        if (scoreResults.isValid)
+            this._populateValidScore(scoreResults);
+        else
+            this._populateInvalidScore();
 
         this._populateDetailedResults(metrics);
-
         if (params.developerMode)
             this.showResultsDetails();
         else
             this.showResultsSummary();
+        globalThis.dispatchEvent(new Event("SpeedometerDone"));
+    }
+
+    handleError(error) {
+        console.assert(this._isRunning);
+        this._isRunning = false;
+        this._hasResults = true;
+        this._metrics = Object.create(null);
+        this._populateInvalidScore();
+        this.showResultsSummary();
+        throw error;
+    }
+
+    _populateValidScore(scoreResults) {
+        document.getElementById("summary").className = "valid";
+
+        this._updateGaugeNeedle(scoreResults.mean);
+        document.getElementById("result-number").textContent = scoreResults.formattedMean;
+        if (scoreResults.formattedDelta)
+            document.getElementById("confidence-number").textContent = `\u00b1 ${scoreResults.formattedDelta}`;
+    }
+
+    _populateInvalidScore() {
+        document.getElementById("summary").className = "invalid";
+        document.getElementById("result-number").textContent = "Error";
+        document.getElementById("confidence-number").textContent = "";
     }
 
     _computeResults(measuredValuesList, displayUnit) {
@@ -137,9 +203,7 @@ class MainBenchmarkClient {
         }
 
         const values = measuredValuesList.map(valueForUnit);
-        const sum = values.reduce((a, b) => {
-            return a + b;
-        }, 0);
+        const sum = values.reduce((a, b) => a + b, 0);
         const arithmeticMean = sum / values.length;
         let meanSigFig = 4;
         let formattedDelta;
@@ -162,6 +226,7 @@ class MainBenchmarkClient {
             formattedMean: formattedMean,
             formattedDelta: formattedDelta,
             formattedMeanAndDelta: formattedMean + (formattedDelta ? ` \xb1 ${formattedDelta} (${formattedPercentDelta})` : ""),
+            isValid: values.length > 0 && isFinite(sum) && sum > 0,
         };
     }
 
@@ -188,11 +253,15 @@ class MainBenchmarkClient {
     }
 
     _populateDetailedResults(metrics) {
+        this._populateNonStandardParams();
         const trackHeight = 24;
         document.documentElement.style.setProperty("--metrics-line-height", `${trackHeight}px`);
         const plotWidth = (params.viewport.width - 120) / 2;
-        document.getElementById("geomean-chart").innerHTML = renderMetricView({
-            metrics: [metrics.Geomean],
+        const aggregateMetrics = [metrics.Geomean];
+        if (params.measurePrepare)
+            aggregateMetrics.push(metrics.Prepare);
+        document.getElementById("aggregate-chart").innerHTML = renderMetricView({
+            metrics: aggregateMetrics,
             width: plotWidth,
             trackHeight,
             renderChildren: false,
@@ -235,6 +304,33 @@ class MainBenchmarkClient {
         csvLink.setAttribute("download", `${filePrefix}.csv`);
     }
 
+    _populateNonStandardParams() {
+        if (params === defaultParams)
+            return;
+        const paramsDiff = [];
+        const usedSearchparams = params.toSearchParamsObject();
+        const defaultSearchParams = defaultParams.toCompleteSearchParamsObject(false);
+        for (const [key, value] of usedSearchparams.entries()) {
+            if (key === "developerMode")
+                continue;
+            const defaultValue = defaultSearchParams.get(key);
+            if (value !== defaultValue)
+                paramsDiff.push({ key, value, defaultValue });
+        }
+        if (paramsDiff.length === 0)
+            return;
+        const body = document.createElement("tbody");
+        for (const { key, value, defaultValue } of paramsDiff) {
+            const row = body.insertRow();
+            row.insertCell().textContent = key;
+            row.insertCell().textContent = value;
+            row.insertCell().textContent = defaultValue;
+        }
+        const table = document.getElementById("non-standard-params-table");
+        table.replaceChild(body, table.tBodies[0]);
+        document.querySelector(".non-standard-params").style.display = "block";
+    }
+
     prepareUI() {
         window.addEventListener("hashchange", this._hashChangeHandler.bind(this));
         window.addEventListener("resize", this._resizeScreeHandler.bind(this));
@@ -248,12 +344,16 @@ class MainBenchmarkClient {
         document.querySelectorAll(".start-tests-button").forEach((button) => {
             button.onclick = this._startBenchmarkHandler.bind(this);
         });
+    }
+
+    async evaluateParams() {
+        const { benchmarkConfigurator } = await this._benchmarkConfiguratorPromise;
 
         if (params.suites.length > 0 || params.tags.length > 0)
-            Suites.enable(params.suites, params.tags);
+            benchmarkConfigurator.enableSuites(params.suites, params.tags);
 
         if (params.developerMode) {
-            this._developerModeContainer = createDeveloperModeContainer(Suites);
+            this._developerModeContainer = createDeveloperModeContainer();
             document.body.append(this._developerModeContainer);
         }
 
@@ -376,8 +476,15 @@ class MainBenchmarkClient {
     }
 }
 
-const rootStyle = document.documentElement.style;
-rootStyle.setProperty("--viewport-width", `${params.viewport.width}px`);
-rootStyle.setProperty("--viewport-height", `${params.viewport.height}px`);
+function init() {
+    const rootStyle = document.documentElement.style;
+    rootStyle.setProperty("--viewport-width", `${params.viewport.width}px`);
+    rootStyle.setProperty("--viewport-height", `${params.viewport.height}px`);
 
-globalThis.benchmarkClient = new MainBenchmarkClient();
+    globalThis.benchmarkClient = new MainBenchmarkClient();
+}
+
+if (document.readyState === "loading")
+    document.addEventListener("DOMContentLoaded", init);
+else
+    init();

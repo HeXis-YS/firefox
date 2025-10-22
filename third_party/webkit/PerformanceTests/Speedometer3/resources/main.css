@@ -10,6 +10,7 @@
     --text-width: 650px;
     --metrics-line-height: 25px;
     --scrollbar-width: 10px;
+    --developer-mode-settings-height: 280px;
 }
 
 body {
@@ -100,6 +101,12 @@ main {
     position: absolute;
     right: 0;
     top: -105px;
+}
+
+.next {
+    right: -13px;
+    top: -110px;
+    color: var(--highlight);
 }
 
 h1 {
@@ -213,40 +220,49 @@ button,
 
 .developer-mode {
     border-radius: 10px;
-    padding: 1rem;
+    padding: 1rem 1rem 0 1rem;
     background: #602525;
     border: 3px solid rgba(255, 255, 255, 0.5);
     position: fixed;
     left: 10px;
     top: 10px;
-    display: flex;
-    flex-direction: column;
 }
 
 .developer-mode summary {
     user-select: none;
     cursor: pointer;
     padding: 1rem;
-    margin: -1rem;
+    margin: -1rem -1rem 0 -1rem;
 }
 
 .developer-mode-content {
-    flex: 1;
-    max-height: 80vh;
-    overflow: auto;
+    padding-bottom: 1rem;
+}
+
+.developer-mode .suites {
+    max-height: calc(100vh - var(--developer-mode-settings-height));
     margin-right: calc(0px - var(--scrollbar-width));
     padding-right: var(--scrollbar-width);
+    overflow: auto;
 }
 
 .developer-mode-content ol {
     list-style: none;
     padding: 0;
-    margin: 1em 0 0.5em 0;
+    margin: 0.5em 0 0 0;
 }
 .developer-mode-content .button-bar {
     display: flex;
     margin-top: 5px;
     gap: 3px;
+}
+
+.developer-mode-content .select-all::before {
+    content: "✔ ";
+}
+
+.developer-mode-content .unselect-all::after {
+    content: " ✘";
 }
 
 .developer-mode-content .settings label {
@@ -271,6 +287,7 @@ button,
 }
 
 .developer-mode-content button {
+    font-size: 16px;
     background: white;
     flex: auto;
     padding: 4px;
@@ -278,8 +295,20 @@ button,
     border: 2px solid rgba(255, 255, 255, 0.5);
     border-radius: 10px;
 }
+
+.developer-mode-content button span {
+    padding-left: 10px;
+    font-size: 1.5em;
+    line-height: 10px;
+    position: relative;
+    top: 2px;
+}
+
 .developer-mode-content .tag {
     border-radius: 100vh;
+}
+
+.developer-mode-content .step-button {
     color: white;
     background: rgba(255, 255, 255, 0.1);
 }
@@ -423,6 +452,25 @@ section#summary > #confidence-number {
     color: var(--inactive-color);
 }
 
+section#summary.invalid h1,
+section#summary.invalid .gauge,
+section#summary.invalid hr {
+    opacity: 0.2;
+}
+section#summary.invalid #result-number {
+    color: var(--highlight);
+}
+section#summary.invalid .buttons {
+    display: none;
+}
+#invalid-score-text {
+    display: none;
+    text-align: center;
+}
+section#summary.invalid #invalid-score-text {
+    display: block;
+}
+
 section#details {
     --viewport-height: max(600px, 90vh);
     --viewport-width: max(800px, 80vw);
@@ -475,6 +523,49 @@ section#instructions .section-content > * {
     flex-direction: column;
 }
 
+section#details h1 {
+    margin-bottom: 10px;
+}
+
+section#details .non-standard-params {
+    display: none;
+    text-align: center;
+    margin-bottom: 2em;
+    /* Increase contrast a bit */
+    filter: brightness(1.5);
+}
+
+section#details .non-standard-params h2 {
+    color: var(--highlight);
+}
+
+#non-standard-params-table {
+    border-collapse: collapse;
+    text-align: left;
+    display: inline-block;
+}
+
+#non-standard-params-table tr {
+    padding: 2px;
+}
+
+#non-standard-params-table thead th {
+    border-bottom: 1px solid var(--foreground);
+}
+
+#non-standard-params-table tbody td {
+    font-weight: normal;
+    text-align: left;
+}
+
+#non-standard-params-table thead th,
+#non-standard-params-table tbody td {
+    padding: 0.1em 0.3em;
+}
+#non-standard-params-table tbody td:nth-child(2) {
+    color: var(--highlight);
+}
+
 section#details .all-metric-results {
     flex: auto;
     overflow-y: auto;
@@ -490,10 +581,6 @@ section#details .arithmetic-mean {
 section#details .arithmetic-mean > label {
     font-weight: bold;
     margin-right: 10px;
-}
-
-section#details h1 {
-    margin-bottom: 10px;
 }
 
 section#details .metric {
