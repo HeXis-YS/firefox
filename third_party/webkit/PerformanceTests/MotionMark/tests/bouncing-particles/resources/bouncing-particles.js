@@ -1,22 +1,46 @@
-function BouncingParticle(stage)
-{
-    this._stageSize = stage.size;
-    this.size = stage.particleSize;
+/*
+ * Copyright (C) 2015-2024 Apple Inc. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY APPLE INC. AND ITS CONTRIBUTORS ``AS IS''
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL APPLE INC. OR ITS CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE.
+ */
 
-    this.position = Stage.randomPosition(stage.size.subtract(stage.particleSize));
-    this._angle = Stage.randomAngle();
-    this._velocity = Stage.randomVelocity(stage.maxVelocity);
-    this.rotater = Stage.randomRotater();
-}
+class BouncingParticle {
+    constructor(stage)
+    {
+        this._stageSize = stage.size;
+        this.size = stage.particleSize;
 
-BouncingParticle.prototype =
-{
+        this.position = Stage.randomPosition(stage.size.subtract(stage.particleSize));
+        this._angle = Stage.randomAngle();
+        this._velocity = Stage.randomVelocity(stage.maxVelocity);
+        this.rotater = Stage.randomRotater();
+    }
+
     get center()
     {
         return this.position.add(this.size.center);
-    },
+    }
 
-    animate: function(timeDelta)
+    animate(timeDelta)
     {
         this.position = this.position.move(this._angle, this._velocity, timeDelta);
         this.rotater.next(timeDelta);
@@ -65,37 +89,37 @@ BouncingParticle.prototype =
     }
 }
 
-BouncingParticlesStage = Utilities.createSubclass(Stage,
-    function()
+class BouncingParticlesStage extends Stage {
+    constructor()
     {
-        Stage.call(this);
+        super();
         this.particles = [];
-    }, {
+    }
 
-    initialize: function(benchmark, options)
+    async initialize(benchmark, options)
     {
-        Stage.prototype.initialize.call(this, benchmark, options);
+        await super.initialize(benchmark, options);
         this.particleSize = new Point(parseInt(options["particleWidth"]) || 10, parseInt(options["particleHeight"]) || 10);
         this.maxVelocity = Math.max(parseInt(options["maxVelocity"]) || 500, 100);
-    },
+    }
 
-    parseShapeParameters: function(options)
+    parseShapeParameters(options)
     {
         this.shape = options["shape"] || "circle";
         this.fill = options["fill"] || "solid";
         this.clip = options["clip"] || "";
         this.blend = options["blend"] || false;
         this.filter = options["filter"] || false;
-    },
+    }
 
-    animate: function(timeDelta)
+    animate(timeDelta)
     {
         this.particles.forEach(function(particle) {
             particle.animate(timeDelta);
         });
-    },
+    }
 
-    tune: function(count)
+    tune(count)
     {
         if (count == 0)
             return;
@@ -114,10 +138,10 @@ BouncingParticlesStage = Utilities.createSubclass(Stage,
         }
 
         this.particles.splice(-count, count);
-    },
+    }
 
-    complexity: function()
+    complexity()
     {
         return this.particles.length;
     }
-});
+}

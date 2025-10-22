@@ -1,9 +1,32 @@
-(function() {
+/*
+ * Copyright (C) 2015-2024 Apple Inc. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY APPLE INC. AND ITS CONTRIBUTORS ``AS IS''
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL APPLE INC. OR ITS CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE.
+ */
 
-BouncingSvgShape = Utilities.createSubclass(BouncingSvgParticle,
-    function(stage)
+class BouncingSvgShape extends BouncingSvgParticle {
+    constructor(stage)
     {
-        BouncingSvgParticle.call(this, stage, stage.shape);
+        super(stage, stage.shape);
         this._fill = stage.fill;
 
         this._createShape(stage);
@@ -11,9 +34,9 @@ BouncingSvgShape = Utilities.createSubclass(BouncingSvgParticle,
         this._applyFill(stage);
 
         this._move();
-    }, {
+    }
 
-    _createShape: function(stage)
+    _createShape(stage)
     {
         switch (this._shape) {
         case "rect":
@@ -27,9 +50,9 @@ BouncingSvgShape = Utilities.createSubclass(BouncingSvgParticle,
             this.element = Utilities.createSVGElement("circle", attrs, {}, stage.element);
             break;
         }
-    },
+    }
 
-    _applyFill: function(stage)
+    _applyFill(stage)
     {
         switch (this._fill) {
         case "gradient":
@@ -43,22 +66,17 @@ BouncingSvgShape = Utilities.createSubclass(BouncingSvgParticle,
             break;
         }
     }
-});
+}
 
-BouncingSvgShapesStage = Utilities.createSubclass(BouncingSvgParticlesStage,
-    function()
+class BouncingSvgShapesStage extends BouncingSvgParticlesStage {
+    async initialize(benchmark, options)
     {
-        BouncingSvgParticlesStage.call(this);
-    }, {
-
-    initialize: function(benchmark, options)
-    {
-        BouncingSvgParticlesStage.prototype.initialize.call(this, benchmark, options);
+        await super.initialize(benchmark, options);
         this.parseShapeParameters(options);
         this._gradientsCount = 0;
-    },
+    }
 
-    createGradient: function(stops)
+    createGradient(stops)
     {
         var attrs = { id: "gradient-" + ++this._gradientsCount };
         var gradient = Utilities.createSVGElement("linearGradient", attrs, {}, this._ensureDefsIsCreated());
@@ -69,16 +87,16 @@ BouncingSvgShapesStage = Utilities.createSubclass(BouncingSvgParticlesStage,
         }
 
         return gradient;
-    },
+    }
 
-    createParticle: function()
+    createParticle()
     {
         return new BouncingSvgShape(this);
-    },
+    }
 
-    particleWillBeRemoved: function(particle)
+    particleWillBeRemoved(particle)
     {
-        BouncingSvgParticlesStage.prototype.particleWillBeRemoved.call(this, particle);
+        super.particleWillBeRemoved(particle);
 
         var fill = particle.element.getAttribute("fill");
         if (fill.indexOf("url(#") != 0)
@@ -87,15 +105,13 @@ BouncingSvgShapesStage = Utilities.createSubclass(BouncingSvgParticlesStage,
         var gradient = this.element.querySelector(fill.substring(4, fill.length - 1));
         this._ensureDefsIsCreated().removeChild(gradient);
     }
-});
+}
 
-BouncingSvgShapesBenchmark = Utilities.createSubclass(Benchmark,
-    function(options)
+class BouncingSvgShapesBenchmark extends Benchmark {
+    constructor(options)
     {
-        Benchmark.call(this, new BouncingSvgShapesStage(), options);
+        super(new BouncingSvgShapesStage(), options);
     }
-);
+}
 
 window.benchmarkClass = BouncingSvgShapesBenchmark;
-
-})();
