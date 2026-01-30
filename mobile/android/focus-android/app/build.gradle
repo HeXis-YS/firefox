@@ -268,10 +268,6 @@ dependencies {
     implementation libs.androidx.transition
     implementation libs.androidx.work.runtime
 
-    // Required for in-app reviews
-    implementation libs.play.review
-    implementation libs.play.review.ktx
-
     implementation libs.google.material
 
     implementation libs.thirdparty.sentry

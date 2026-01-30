@@ -6,8 +6,6 @@ package org.mozilla.fenix.components.metrics
 
 import android.content.Context
 import android.os.RemoteException
-import com.android.installreferrer.api.InstallReferrerClient
-import com.android.installreferrer.api.InstallReferrerStateListener
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -15,9 +13,6 @@ import mozilla.components.support.base.log.logger.Logger
 import org.json.JSONException
 import org.json.JSONObject
 import org.mozilla.fenix.FeatureFlags
-import org.mozilla.fenix.GleanMetrics.MetaAttribution
-import org.mozilla.fenix.GleanMetrics.Pings
-import org.mozilla.fenix.GleanMetrics.PlayStoreAttribution
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.utils.Settings
 import java.io.UnsupportedEncodingException
@@ -33,86 +28,10 @@ class InstallReferrerMetricsService(private val context: Context) : MetricsServi
     private val logger = Logger("InstallReferrerMetricsService")
     override val type = MetricServiceType.Data
 
-    private var referrerClient: InstallReferrerClient? = null
-
     override fun start() {
-        if (context.settings().utmParamsKnown) {
-            return
-        }
-
-        val timerId = PlayStoreAttribution.attributionTime.start()
-        val client = InstallReferrerClient.newBuilder(context).build()
-        referrerClient = client
-
-        client.startConnection(
-            object : InstallReferrerStateListener {
-                override fun onInstallReferrerSetupFinished(responseCode: Int) {
-                    PlayStoreAttribution.attributionTime.stopAndAccumulate(timerId)
-                    val firstSession = FirstSessionPing(context)
-                    PlayStoreAttribution.responseCode.set(responseCode.toString())
-                    when (responseCode) {
-                        InstallReferrerClient.InstallReferrerResponse.OK -> {
-                            // Connection established.
-                            val installReferrerResponse = try {
-                                client.installReferrer.installReferrer
-                            } catch (e: RemoteException) {
-                                // We can't do anything about this.
-                                logger.error("Failed to retrieve install referrer response", e)
-                                null
-                            } catch (e: SecurityException) {
-                                logger.error("Failed to retrieve install referrer response", e)
-                                null
-                            }
-
-                            if (installReferrerResponse.isNullOrBlank()) {
-                                return
-                            }
-
-                            PlayStoreAttribution.installReferrerResponse.set(installReferrerResponse)
-
-                            val utmParams = UTMParams.parseUTMParameters(installReferrerResponse)
-                            if (FeatureFlags.META_ATTRIBUTION_ENABLED) {
-                                MetaParams.extractMetaAttribution(utmParams.content)
-                                    ?.recordMetaAttribution()
-                            }
-
-                            utmParams.recordInstallReferrer(context.settings())
-                            context.settings().utmParamsKnown = true
-
-                            firstSession.checkAndSend()
-                            triggerPing()
-                        }
-
-                        InstallReferrerClient.InstallReferrerResponse.FEATURE_NOT_SUPPORTED,
-                        InstallReferrerClient.InstallReferrerResponse.DEVELOPER_ERROR,
-                        InstallReferrerClient.InstallReferrerResponse.PERMISSION_ERROR,
-                        -> {
-                            // unrecoverable errors, but we still want to send the first-session ping.
-                            context.settings().utmParamsKnown = true
-                            firstSession.checkAndSend()
-                            triggerPing()
-                        }
-
-                        InstallReferrerClient.InstallReferrerResponse.SERVICE_UNAVAILABLE -> {
-                            // Connection couldn't be established.
-                        }
-                    }
-                    // End the connection, and null out the client.
-                    stop()
-                }
-
-                override fun onInstallReferrerServiceDisconnected() {
-                    // Try to restart the connection on the next request to
-                    // Google Play by calling the startConnection() method.
-                    referrerClient = null
-                }
-            },
-        )
     }
 
     override fun stop() {
-        referrerClient?.endConnection()
-        referrerClient = null
     }
 
     override fun track(event: Event) = Unit
@@ -120,9 +39,6 @@ class InstallReferrerMetricsService(private val context: Context) : MetricsServi
     override fun shouldTrack(event: Event): Boolean = false
 
     private fun triggerPing() {
-        CoroutineScope(Dispatchers.IO).launch {
-            Pings.playStoreAttribution.submit()
-        }
     }
 }
 
@@ -237,12 +153,6 @@ data class UTMParams(
             return
         }
         intoSettings(settings)
-
-        PlayStoreAttribution.source.set(source)
-        PlayStoreAttribution.medium.set(medium)
-        PlayStoreAttribution.campaign.set(campaign)
-        PlayStoreAttribution.content.set(content)
-        PlayStoreAttribution.term.set(term)
     }
 }
 
@@ -337,9 +247,6 @@ data class MetaParams(
      * record META attribution params to telemetry
      */
     fun recordMetaAttribution() {
-        MetaAttribution.app.set(app)
-        MetaAttribution.t.set(t)
-        MetaAttribution.data.set(data)
-        MetaAttribution.nonce.set(nonce)
+        return
     }
 }

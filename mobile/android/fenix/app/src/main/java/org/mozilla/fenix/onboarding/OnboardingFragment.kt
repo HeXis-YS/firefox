@@ -330,8 +330,7 @@ class OnboardingFragment : Fragment() {
         }
 
         if (!settings.isTelemetryEnabled) {
-            Pings.onboardingOptOut.setEnabled(true)
-            Pings.onboardingOptOut.submit()
+            Pings.onboardingOptOut.setEnabled(false)
         }
 
         startMetricsIfEnabled(

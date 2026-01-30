@@ -16,27 +16,12 @@ object ContentRecommendationsFeatureHelper {
     /**
      * List of supported Pocket locales.
      */
-    val POCKET_SUPPORTED_LOCALES = listOf("en-US", "en-CA")
+    val POCKET_SUPPORTED_LOCALES = listOf<String>()
 
     /**
      * List of supported content recommendations locales.
      */
-    val CONTENT_RECOMMENDATIONS_SUPPORTED_LOCALE = listOf(
-        "fr",
-        "fr-FR",
-        "es",
-        "es-ES",
-        "it",
-        "it-IT",
-        "en",
-        "en-CA",
-        "en-GB",
-        "en-US",
-        "de",
-        "de-DE",
-        "de-AT",
-        "de-CH",
-    )
+    val CONTENT_RECOMMENDATIONS_SUPPORTED_LOCALE = listOf<String>()
 
     /**
      * Show Pocket recommended stories on home.

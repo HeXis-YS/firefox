@@ -167,8 +167,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     }
 
     @VisibleForTesting
-    internal val isCrashReportEnabledInBuild: Boolean =
-        BuildConfig.CRASH_REPORTING && Config.channel.isReleased
+    internal val isCrashReportEnabledInBuild: Boolean = false
 
     override val preferences: SharedPreferences =
         appContext.getSharedPreferences(FENIX_PREFERENCES, MODE_PRIVATE)
@@ -363,32 +362,18 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         default = true,
     )
 
-    val isCrashReportingEnabled: Boolean
-        get() = isCrashReportEnabledInBuild &&
-            preferences.getBoolean(
-                appContext.getPreferenceKey(R.string.pref_key_crash_reporter),
-                true,
-            )
+    val isCrashReportingEnabled: Boolean = false
 
     val isRemoteDebuggingEnabled by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_remote_debugging),
         default = false,
     )
 
-    var isTelemetryEnabled by booleanPreference(
-        appContext.getPreferenceKey(R.string.pref_key_telemetry),
-        default = true,
-    )
+    var isTelemetryEnabled = false
 
-    var isMarketingTelemetryEnabled by booleanPreference(
-        appContext.getPreferenceKey(R.string.pref_key_marketing_telemetry),
-        default = false,
-    )
+    var isMarketingTelemetryEnabled = false
 
-    var hasMadeMarketingTelemetrySelection by booleanPreference(
-        appContext.getPreferenceKey(R.string.pref_key_marketing_telemetry_selection_made),
-        default = false,
-    )
+    var hasMadeMarketingTelemetrySelection = true
 
     var hasAcceptedTermsOfService by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_terms_accepted),
@@ -401,16 +386,9 @@ class Settings(private val appContext: Context) : PreferencesHolder {
      * sure that users who upgrade and had telemetry disabled don't start sending the
      * daily usage ping telemetry.
      */
-    var isDailyUsagePingEnabled by booleanPreference(
-        appContext.getPreferenceKey(R.string.pref_key_daily_usage_ping),
-        default = isTelemetryEnabled,
-        persistDefaultIfNotExists = true,
-    )
+    var isDailyUsagePingEnabled = false
 
-    var isExperimentationEnabled by booleanPreference(
-        appContext.getPreferenceKey(R.string.pref_key_experimentation_v2),
-        default = isTelemetryEnabled,
-    )
+    var isExperimentationEnabled = false
 
     var isOverrideTPPopupsForPerformanceTest = false
 
@@ -1728,20 +1706,12 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     /**
      * Indicates if the Pocket recommended stories homescreen section should be shown.
      */
-    var showPocketRecommendationsFeature by lazyFeatureFlagPreference(
-        appContext.getPreferenceKey(R.string.pref_key_pocket_homescreen_recommendations),
-        featureFlag = ContentRecommendationsFeatureHelper.isPocketRecommendationsFeatureEnabled(appContext),
-        default = { homescreenSections[HomeScreenSection.POCKET] == true },
-    )
+    var showPocketRecommendationsFeature = false
 
     /**
      * Indicates if the Pocket recommendations homescreen section should also show sponsored stories.
      */
-    val showPocketSponsoredStories by lazyFeatureFlagPreference(
-        key = appContext.getPreferenceKey(R.string.pref_key_pocket_sponsored_stories),
-        default = { homescreenSections[HomeScreenSection.POCKET_SPONSORED_STORIES] == true },
-        featureFlag = ContentRecommendationsFeatureHelper.isPocketSponsoredStoriesFeatureEnabled(appContext),
-    )
+    val showPocketSponsoredStories = false
 
     /**
      * Get the profile id to use in the sponsored stories communications with the Pocket endpoint.
@@ -1805,19 +1775,12 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     /**
      * Indicates if the MARS API integration is used for sponsored content.
      */
-    var marsAPIEnabled by lazyFeatureFlagPreference(
-        key = appContext.getPreferenceKey(R.string.pref_key_mars_api_enabled),
-        default = { FxNimbus.features.mars.value().enabled },
-        featureFlag = true,
-    )
+    var marsAPIEnabled = false
 
     /**
      * Indicates if the Contile functionality should be visible.
      */
-    var showContileFeature by booleanPreference(
-        key = appContext.getPreferenceKey(R.string.pref_key_enable_contile),
-        default = true,
-    )
+    var showContileFeature = false
 
     /**
      * Indicates if the Unified Search feature should be visible.

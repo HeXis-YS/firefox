@@ -65,7 +65,6 @@ projects:
     - lib-crash-sentry
     - lib-dataprotect
     - lib-publicsuffixlist
-    - lib-push-firebase
     - lib-state
     - service-digitalassetlinks
     - service-firefox-accounts

@@ -7,9 +7,6 @@ package org.mozilla.fenix.components.metrics
 import android.content.Context
 import android.util.Base64
 import androidx.annotation.VisibleForTesting
-import com.google.android.gms.ads.identifier.AdvertisingIdClient
-import com.google.android.gms.common.GooglePlayServicesNotAvailableException
-import com.google.android.gms.common.GooglePlayServicesRepairableException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import mozilla.components.browser.state.search.SearchEngine
@@ -107,26 +104,8 @@ object MetricsUtils {
      */
     @Suppress("TooGenericExceptionCaught")
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun getAdvertisingID(context: Context): String? {
-        return try {
-            AdvertisingIdClient.getAdvertisingIdInfo(context).id
-        } catch (e: GooglePlayServicesNotAvailableException) {
-            Logger.debug("getAdvertisingID() - Google Play not installed on the device")
-            null
-        } catch (e: GooglePlayServicesRepairableException) {
-            Logger.debug("getAdvertisingID() - recoverable error connecting to Google Play Services")
-            null
-        } catch (e: IllegalStateException) {
-            // This is unlikely to happen, as this should be running off the main thread.
-            Logger.debug("getAdvertisingID() - AdvertisingIdClient must be called off the main thread")
-            null
-        } catch (e: IOException) {
-            Logger.debug("getAdvertisingID() - unable to connect to Google Play Services")
-            null
-        } catch (e: NullPointerException) {
-            Logger.debug("getAdvertisingID() - no Google Advertising ID available")
-            null
-        }
+    internal fun getAdvertisingID(@Suppress("UNUSED_PARAMETER") context: Context): String? {
+        return null
     }
 
     /**
