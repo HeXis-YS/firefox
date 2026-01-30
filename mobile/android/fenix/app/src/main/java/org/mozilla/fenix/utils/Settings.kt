@@ -1857,7 +1857,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     var useRemoteSearchConfiguration by lazyFeatureFlagPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_use_remote_search_configuration),
         default = { FxNimbus.features.remoteSearchConfiguration.value().enabled },
-        featureFlag = true,
+        featureFlag = false,
     )
 
     /**

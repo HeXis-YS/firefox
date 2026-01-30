@@ -225,7 +225,7 @@ class SecretSettingsFragment : PreferenceFragmentCompat() {
         }
 
         requirePreference<SwitchPreference>(R.string.pref_key_use_remote_search_configuration).apply {
-            isVisible = true
+            isVisible = false
             isChecked = context.settings().useRemoteSearchConfiguration
             onPreferenceChangeListener = object : SharedPreferenceUpdater() {
                 override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
