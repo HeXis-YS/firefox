@@ -400,7 +400,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     var showSecretDebugMenuThisSession: Boolean = false
         get() = field || preferences.getBoolean(
             appContext.getPreferenceKey(R.string.pref_key_persistent_debug_menu),
-            false,
+            true,
         )
 
     val shouldShowSecurityPinWarningSync: Boolean
@@ -715,7 +715,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
 
     var shouldEnableGlobalPrivacyControl by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_privacy_enable_global_privacy_control),
-        false,
+        true,
     )
 
     var shouldUseCookieBannerPrivateMode by lazyFeatureFlagPreference(
@@ -820,12 +820,12 @@ class Settings(private val appContext: Context) : PreferencesHolder {
 
     val useStandardTrackingProtection by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_tracking_protection_standard_option),
-        true,
+        false,
     )
 
     val useStrictTrackingProtection by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_tracking_protection_strict_default),
-        false,
+        true,
     )
 
     val useCustomTrackingProtection by booleanPreference(
@@ -862,7 +862,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
 
     val useProductionRemoteSettingsServer by booleanPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_remote_server_prod),
-        default = true,
+        default = false,
     )
 
     val enabledTotalCookieProtection: Boolean
@@ -2323,7 +2323,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
      */
     val showDohEntryPoint by lazyFeatureFlagPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_doh_settings_enabled),
-        default = { FxNimbus.features.doh.value().showUi },
+        default = { true },
         featureFlag = true,
     )
 
@@ -2336,7 +2336,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
      */
     private var trrMode by intPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_doh_settings_mode),
-        default = DOH_SETTINGS_DEFAULT,
+        default = DOH_SETTINGS_OFF,
     )
 
     /**
