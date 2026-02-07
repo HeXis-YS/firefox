@@ -8,17 +8,19 @@
 # mozharness configuration from android_common.py, or similar.
 
 config = {
-    "emulator_avd_name": "mozemulator-android31-x86_64",
+    "emulator_avd_name": "mozemulator-android33-x86_64",
     "emulator_process_name": "qemu-system-x86_64-headless",
     "emulator_extra_args": [
         "-skip-adb-auth",
         "-selinux", "permissive",
-        "-memory", "8192",
+        "-memory", "6144",
         "-cores", "4",
         "-skin", "1280x960",
         "-no-audio",
         "-no-window",
         "-no-boot-anim",
+        "-writable-system",
+        "-no-snapstorage",
         "-qemu", "-enable-kvm", "-cpu", "host", "-smp", "cores=4",
     ],
     "exes": {
